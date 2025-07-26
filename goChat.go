@@ -1,15 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/Gjones747/goChat/internal/middleWare"
 	"github.com/Gjones747/goChat/internal/socket"
 )
 
 func main() {
-	fmt.Println("Here")
-	http.HandleFunc("/ws", socket.Upgrader)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	mux := http.NewServeMux()
+	log.Println("Running on :8080")
+
+	mux.Handle("GET /ws", http.HandlerFunc(socket.Upgrader))
+	log.Fatal(http.ListenAndServe(":8080", middleWare.LogMiddleWare(mux)))
 }
