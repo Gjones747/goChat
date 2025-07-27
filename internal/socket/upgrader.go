@@ -39,8 +39,12 @@ func Upgrader(response http.ResponseWriter, request *http.Request) {
 	fmt.Fprint(readWriteBuffer, "\r\n")
 
 	readWriteBuffer.Flush()
-	time.Sleep(5 * time.Second)
 
 	defer connection.Close()
+	defer log.Print("Connection Closed")
+
+	go handleFrames(connection)
+
+	time.Sleep(5 * time.Second)
 
 }
