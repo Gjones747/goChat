@@ -17,8 +17,6 @@ func Upgrader(response http.ResponseWriter, request *http.Request) {
 	key := request.Header.Get("Sec-WebSocket-Key")
 	acceptKey := handShakeKey(key)
 
-	fmt.Println(acceptKey)
-
 	// essentially next bit takes the underlying http request and hijacks it to perform low level stuff?
 
 	hijack, ok := response.(http.Hijacker)
@@ -39,9 +37,6 @@ func Upgrader(response http.ResponseWriter, request *http.Request) {
 	fmt.Fprint(readWriteBuffer, "\r\n")
 
 	readWriteBuffer.Flush()
-
-	defer connection.Close()
-	defer log.Print("Connection Closed")
 
 	go handleFrames(connection)
 

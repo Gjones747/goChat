@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Tester</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; margin-bottom: 10px; }
+    input, button { padding: 5px; }
+  </style>
+</head>
+<body>
+
+<h2>WebSocket Tester</h2>
+
+<label for="wsUrl">WebSocket URL:</label>
+<input type="text" id="wsUrl" value="ws://localhost:8080/ws" size="40">
+<button onclick="connect()">Connect</button>
+<br><br>
+
+<div id="log"></div>
+
+<input type="text" id="messageInput" placeholder="Type message..." size="40">
+<button onclick="sendMessage()">Send</button>
+
+<script>
+  let socket;
+  const log = document.getElementById('log');
+
+  function logMessage(message, type = 'info') {
+    const el = document.createElement('div');
+    el.textContent = `[${type.toUpperCase()}] ${message}`;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function connect() {
+    const url = document.getElementById('wsUrl').value;
+    socket = new WebSocket(url);
+
+    socket.onopen = () => logMessage('Connected to ' + url, 'open');
+    socket.onmessage = (event) => logMessage('Received: ' + event.data, 'message');
+    socket.onclose = () => logMessage('Connection closed', 'close');
+    socket.onerror = (error) => logMessage('Error: ' + error.message, 'error');
+  }
+
+  function sendMessage() {
+    const message = document.getElementById('messageInput').value;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(message);
+      logMessage('Sent: ' + message, 'sent');
+    } else {
+      logMessage('WebSocket is not open.', 'error');
+    }
+  }
+</script>
+
+</body>
+</html>
