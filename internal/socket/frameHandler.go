@@ -72,7 +72,7 @@ func handleFrames(connection net.Conn) {
 
 		if fin {
 			fmt.Println("Message: " + msg)
-
+			SendTextFrame(connection, msg)
 		}
 	}
 }

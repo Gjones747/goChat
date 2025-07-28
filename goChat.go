@@ -13,5 +13,5 @@ func main() {
 	log.Println("Running on :8080")
 
 	mux.Handle("GET /ws", http.HandlerFunc(socket.Upgrader))
-	log.Fatal(http.ListenAndServe(":8080", middleWare.LogMiddleWare(mux)))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", middleWare.LogMiddleWare(mux)))
 }
