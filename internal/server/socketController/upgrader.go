@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+
+	"github.com/Gjones747/goChat/internal/server/models"
 )
 
 func Upgrader(responseWriter http.ResponseWriter, request *http.Request) {
@@ -33,11 +35,14 @@ func Upgrader(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	_, readWriteBuffer, err := hijackedCon.Hijack()
+	connection, readWriteBuffer, err := hijackedCon.Hijack()
 	if err != nil {
 		http.Error(responseWriter, "failed to grab hijacked connection", 500)
 		return
 	}
+
+	newUser := models.NewUser(connection, &models.Room{})
+	fmt.Println(newUser)
 
 	returnKey := fmt.Sprintf("%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", key)
 	fmt.Println(returnKey)
