@@ -5,15 +5,19 @@ import (
 )
 
 type User struct {
-	Room       *Room
-	Connection net.Conn
+	room       *Room
+	Connection *net.Conn
 	send       chan []byte
 }
 
-func NewUser(connection net.Conn, room *Room) *User {
+func NewUser(connection *net.Conn) *User {
 	return &User{
-		Room:       room,
+		room:       nil,
 		Connection: connection,
 		send:       make(chan []byte),
-	}
+	}                     
+}
+
+func (user *User) JoinRoom(room *Room) {
+	user.room = room
 }

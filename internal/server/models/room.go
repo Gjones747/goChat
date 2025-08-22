@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"log"
+	"os/user"
 )
 
 type Room struct {
@@ -17,19 +19,21 @@ func InitRoom(user *User) *Room {
 	newRoom :=  &Room{
 		users: make(map [*User]bool),
 		messages: make(chan []byte),
+		register: make(chan *User),
+		deregester: make(chan *User),
 	}
 
 	newRoom.users[user] = true
 	return newRoom
 }
 
-// returns false so it can be removed from TBDDDD how this works 
-func (room *Room) StartRoon() bool {
+func (room *Room) StartRoom() bool {
+	log.Println("starting room")
 	for {
 		select {
 		case user := <-room.register:
 			room.users[user] = true
-			log.Println("New user added")
+			fmt.Println("New user added")
 		case user := <- room.deregester:
 			room.users[user] = false
 			log.Println("User left the room")
@@ -37,7 +41,7 @@ func (room *Room) StartRoon() bool {
 				return false
 			}
 		case message := <- room.messages:
-			log.Println(message)
+			log.Printf("messege: %s", message)
 			// this is where we need to send the message to everyone in the room essentially
 		}
 	}
@@ -47,9 +51,27 @@ func (room *Room) StartRoon() bool {
 func (room *Room) checkRoom() bool {
 
 	for _, val := range room.users {
-		if val != true {
-			return false
+		if val {
+			return true
 		}
 	}
-	return true
+	return false
 }
+
+
+// this function will add someone to a room using the register channel 
+func (room *Room) AddUser(user *User) {
+	room.register <- user
+}
+
+func (room *Room) AddMessage(message []byte) {
+	room.messages <- message
+}
+
+
+
+
+
+
+
+

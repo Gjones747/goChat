@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Gjones747/goChat/internal/server/models"
-	"github.com/Gjones747/goChat/internal/server/socketController"
+	socketcontroller "github.com/Gjones747/goChat/internal/server/socketController"
 )
 
 // This is where we define what happens when someone makes a room
@@ -16,10 +16,15 @@ func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHu
 		log.Println(err)
 	}
 
-	newRoom := models.InitRoom(&newUser)
+	newRoom := models.InitRoom(newUser)
 	roomHub.Rooms[roomCode] = newRoom
+	newUser.JoinRoom(roomHub.Rooms[roomCode])
+
+	// starts the room
+	go roomHub.Rooms[roomCode].StartRoom()
+
+	log.Println("here")
 
 	// starts the new room
-	go newRoom.StartRoon()
 
 }
