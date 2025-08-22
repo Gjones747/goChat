@@ -12,11 +12,15 @@ type Room struct {
 }
 
 
-func InitRoom() *Room {
-	return &Room{
+// each new room has to start with a user 
+func InitRoom(user *User) *Room {
+	newRoom :=  &Room{
 		users: make(map [*User]bool),
 		messages: make(chan []byte),
 	}
+
+	newRoom.users[user] = true
+	return newRoom
 }
 
 // returns false so it can be removed from TBDDDD how this works 
