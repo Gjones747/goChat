@@ -11,13 +11,16 @@ import (
 
 
 
- func JoinRoom(responseWriter http.ResponseWriter, request *http.Request, roomHub *models.RoomHub, roomCode string) error {
+func JoinRoom(responseWriter http.ResponseWriter, request *http.Request, roomHub *models.RoomHub, roomCode string) error {
 	
 	user, err := socketcontroller.Upgrader(responseWriter, request) 
 	if err != nil {
 		return err
 	}
 
+	if err != nil {
+		return err
+	}
 	roomHub.Rooms[roomCode].AddUser(user)
 	user.JoinRoom(roomHub.Rooms[roomCode])
 

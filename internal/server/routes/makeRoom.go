@@ -14,6 +14,7 @@ func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHu
 	newUser, err := socketcontroller.Upgrader(responeWriter, request)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	newRoom := models.InitRoom(newUser)
@@ -22,6 +23,8 @@ func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHu
 
 	// starts the room
 	go roomHub.Rooms[roomCode].StartRoom()
+
+	go socketcontroller.UserIO(newUser, roomHub)
 
 	log.Println("here")
 

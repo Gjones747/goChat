@@ -27,6 +27,13 @@ func ioReader(user *models.User) {
 			log.Println(err)
 			break
 		}
+
+		log.Printf("message header %08b", header)
+
+		// shifts the byte 7 over so [1xxxxxxx] = [00000001] then 0x01 gits the value of the first bit by masking out the other ones??
+		// if fin = 1 it is the last data packet and needs to be added to the room channel 
+		fin := (header[0] >> 7) & 0x01
+		log.Println(fin)
 	}
 
 }
