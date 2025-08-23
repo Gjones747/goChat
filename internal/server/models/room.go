@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"log"
-	"os/user"
 )
 
 type Room struct {

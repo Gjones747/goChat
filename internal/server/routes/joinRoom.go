@@ -21,5 +21,7 @@ import (
 	roomHub.Rooms[roomCode].AddUser(user)
 	user.JoinRoom(roomHub.Rooms[roomCode])
 
+	socketcontroller.UserIO(user, roomHub)
+
 	return nil
 }

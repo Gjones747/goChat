@@ -39,7 +39,7 @@ func Upgrader(responseWriter http.ResponseWriter, request *http.Request) (*model
 		return &models.User{}, errors.New("did not send a socket request header")
 	}
 
-	newUser := models.NewUser(&connection)
+	newUser := models.NewUser(connection)
 
 	returnKey := fmt.Sprintf("%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", key)
 	hasher := sha1.New()
