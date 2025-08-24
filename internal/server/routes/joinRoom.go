@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"log"
 
 	"github.com/Gjones747/goChat/internal/server/models"
 	socketcontroller "github.com/Gjones747/goChat/internal/server/socketController"
@@ -21,6 +22,7 @@ func JoinRoom(responseWriter http.ResponseWriter, request *http.Request, roomHub
 	if err != nil {
 		return err
 	}
+	log.Println(roomCode)
 	roomHub.Rooms[roomCode].AddUser(user)
 	user.JoinRoom(roomHub.Rooms[roomCode])
 

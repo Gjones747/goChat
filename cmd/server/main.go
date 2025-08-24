@@ -12,7 +12,7 @@ func main() {
 	mux := http.NewServeMux()
 	roomHub := models.MakeRoomHub()
 
-	createRoomHandler := func(w http.ResponseWriter, r *http.Request){
+	createRoomHandler := func(w http.ResponseWriter, r *http.Request) {
 
 		roomCode := r.URL.Query().Get("room_code")
 		if roomCode == "" {
@@ -32,8 +32,8 @@ func main() {
 
 		routes.JoinRoom(w, r, roomHub, roomCode)
 	}
-	
-	// Endpoint is essentially ..../makeRoom?room_code={whatever}
+
+	// Endpoint is essentially ..../makeRoom?room_code={whatever}&user_name={username}
 	// spawns a new room and automatically adds the user to the room
 	mux.Handle("GET /makeRoom", http.HandlerFunc(createRoomHandler))
 	mux.Handle("GET /joinRoom", http.HandlerFunc(joinRoomHandler))
