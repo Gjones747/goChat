@@ -1,1 +1,1 @@
-Ground up websockets with go
+Websocket terminal chat application "from scratch"

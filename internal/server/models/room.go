@@ -1,0 +1,76 @@
+package models
+
+import (
+	"fmt"
+	"log"
+)
+
+type Room struct {
+	users map [*User]bool
+	messages chan []byte
+	register chan *User
+	deregester chan *User
+}
+
+
+// each new room has to start with a user 
+func InitRoom(user *User) *Room {
+	newRoom :=  &Room{
+		users: make(map [*User]bool),
+		messages: make(chan []byte),
+		register: make(chan *User),
+		deregester: make(chan *User),
+	}
+
+	newRoom.users[user] = true
+	return newRoom
+}
+
+func (room *Room) StartRoom() bool {
+	log.Println("starting room")
+	for {
+		select {
+		case user := <-room.register:
+			room.users[user] = true
+			fmt.Println("New user added")
+		case user := <- room.deregester:
+			room.users[user] = false
+			log.Println("User left the room")
+			if !room.checkRoom() {
+				return false
+			}
+		case message := <- room.messages:
+			log.Printf("messege: %s", message)
+			// this is where we need to send the message to everyone in the room essentially
+		}
+	}
+}
+
+// this function essentially checks if there are any users left in the room and returns false if there aren't any
+func (room *Room) checkRoom() bool {
+
+	for _, val := range room.users {
+		if val {
+			return true
+		}
+	}
+	return false
+}
+
+
+// this function will add someone to a room using the register channel 
+func (room *Room) AddUser(user *User) {
+	room.register <- user
+}
+
+func (room *Room) AddMessage(message []byte) {
+	room.messages <- message
+}
+
+
+
+
+
+
+
+
