@@ -1,6 +1,7 @@
 package socketcontroller
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"github.com/Gjones747/goChat/internal/server/models"
@@ -30,44 +31,66 @@ func ioReader(user *models.User) {
 		_, err := io.ReadFull(user.Connection, header)
 		if err != nil {
 			log.Println(err)
-			break
+			return
 		}
-
-		log.Printf("message header %08b", header)
 
 		// shifts the byte 7 over so [1xxxxxxx] = [00000001] then 0x01 gits the value of the first bit by masking out the other ones??
 		// if fin = 1 it is the last data packet and needs to be added to the room channel 
 		fin := (header[0] >> 7)
 		opcode := header[0] & 0b00001111
 		mask := (header[1] >> 7) == 1
-		payloadLength := header[1] & 0b01111111
+		payloadLength :=[]byte{header[1] & 0b01111111}
 		maskKey := make([]byte, 4)
-		payLoad := make([]byte, payloadLength)
+		payloadLengthAsInt := int(payloadLength[0])
 
-		if payloadLength < 126 {
-			_, err := io.ReadFull(user.Connection, maskKey)
+		if payloadLength[0] == 126 {
+			newPayloadLength := make([]byte, 2)
+			_, err := io.ReadFull(user.Connection, newPayloadLength)
 			if err != nil {
-				log.Println(err)
-				break
+				log.Println("Error reading 2 byte payload length")
+				return
 			}
+			payloadLength = newPayloadLength
+			payloadLengthAsInt = int(binary.BigEndian.Uint16(payloadLength))
+		} else if payloadLength[0] == 127 {
+			newPayloadLength := make([]byte, 8)
+			_, err := io.ReadFull(user.Connection, newPayloadLength)
+			if err != nil {
+				log.Println("Error reading 8 byte payload length")
+	
+				return
+			}
+			payloadLength = newPayloadLength
+			payloadLengthAsInt = int(binary.BigEndian.Uint64(payloadLength))
+		} else if payloadLength[0] > 127 {
+			log.Println("Bro payload length is not supposed to be more than 127 you got some serious issues")
 		}
 
+		_, err = io.ReadFull(user.Connection, maskKey)
+		if err != nil {
+			log.Println(err)
+			break
+		}
 
-		log.Printf("message maskKey %08b", maskKey)
+		fmt.Println(payloadLengthAsInt)
+		payLoad := make([]byte, payloadLengthAsInt)
 
-		fmt.Println("payload length %d mask %t", payloadLength, mask)
-
-		log.Printf("%08b", opcode)
 
 		switch opcode {
 		case 0x0:
 			fmt.Println("this is a continuation frame")
 		case 0x1:
 			fmt.Println("this is a text frame")
+			if !mask {
+				log.Println("Bro you gotta make sure the message is masked")
+				return
+			}
+
 
 			_, err = io.ReadFull(user.Connection, payLoad)
 			if err != nil {
 				log.Println("you got an error reading the payload bytes")
+				return
 			}
 
 			decodedMessage := decodeMessage(payLoad, maskKey)
@@ -100,7 +123,6 @@ func ioReader(user *models.User) {
 			log.Println("this is the final part of the message ")
 			// this is where the handling for posting the message to the room needs to go
 		}
-		log.Println(fin)
 	}
 
 }
