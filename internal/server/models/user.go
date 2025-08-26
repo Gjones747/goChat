@@ -24,3 +24,12 @@ func (user *User) JoinRoom(room *Room) {
 	user.room = room
 }
 
+
+func (user *User) Send(message []byte) {
+	user.send <- message
+	user.room.messages <- message
+}
+
+func (user *User) Recieve(message []byte) {
+	user.send <- message
+}
