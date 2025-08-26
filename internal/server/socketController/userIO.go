@@ -94,7 +94,7 @@ func ioReader(user *models.User) {
 			}
 
 			decodedMessage := decodeMessage(payLoad, maskKey)
-			fmt.Printf("the message sent was %s \n", decodedMessage)
+			fmt.Printf("the message sent was: %s \n", decodedMessage)
 		case 0x2:
 			fmt.Println("this is a binary frame")
 		case 0x3:
@@ -128,15 +128,9 @@ func ioReader(user *models.User) {
 }
 
 func decodeMessage(message []byte, maskKey []byte) ([]byte) {
-	
-	hexVal := 0
 
 	for index, _ := range message {
-		message[index] = message[index] ^ maskKey[hexVal % 4]
-		hexVal += 1
-		if hexVal > 4 {
-			hexVal = 0
-		}
+		message[index] = message[index] ^ maskKey[index % 4]
 	}
 	return message
 }
