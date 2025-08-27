@@ -8,9 +8,13 @@ type enterRoomView struct {
 }
 
 
-func makeEnterRoomView() enterRoomView {
+func initEnterRoomView() enterRoomView {
 	enterRoomView := enterRoomView {
 		input: []byte{},
 	}
 	return enterRoomView
+}
+
+func (model enterRoomView) View() string {
+	return "Type in the room you want to visit"
 }
