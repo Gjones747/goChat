@@ -34,9 +34,10 @@ func (room *Room) StartRoom() bool {
 			go user.userIOWriter()
 			fmt.Println("New user added")
 		case user := <-room.deregester:
+			user.Connection.Close()
 			close(user.send)
 			room.users[user] = false
-			log.Println("User left the room")
+			log.Printf("User: %s left the room\n", user.Name)
 			if !room.checkRoom() {
 				return false
 			}
@@ -70,6 +71,10 @@ func (room *Room) checkRoom() bool {
 // this function will add someone to a room using the register channel
 func (room *Room) AddUser(user *User) {
 	room.register <- user
+}
+
+func (room *Room) RemoveUser(user *User) {
+	room.deregester <- user
 }
 
 func (room *Room) AddMessage(message []byte) {
