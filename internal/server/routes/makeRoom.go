@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"log"
+	"errors"
 	"net/http"
 
 	"github.com/Gjones747/goChat/internal/server/models"
@@ -10,24 +10,28 @@ import (
 
 // This is where we define what happens when someone makes a room
 
-func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHub *models.RoomHub, roomCode string) {
-	newUser, err := socketcontroller.Upgrader(responeWriter, request)
-	if err != nil {
-		log.Println(err)
-		return
+func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHub *models.RoomHub, roomCode string) error {
+	userName := request.URL.Query().Get("user_name")
+	if userName == "" {
+		return errors.New("did not send a user_name query param")
 	}
 
-	newRoom := models.InitRoom(newUser)
+	connection, err := socketcontroller.Upgrader(responeWriter, request)
+	if err != nil {
+		return err
+	}
+
+	newUser := models.NewUser(connection, userName)
+
+	newRoom := models.InitRoom()
 	roomHub.Rooms[roomCode] = newRoom
 	newUser.JoinRoom(roomHub.Rooms[roomCode])
 
 	// starts the room
 	go roomHub.Rooms[roomCode].StartRoom()
 
-	go socketcontroller.UserIO(newUser, roomHub)
+	roomHub.Rooms[roomCode].AddUser(newUser)
 
-	log.Println("here")
-
-	// starts the new room
+	return nil
 
 }
