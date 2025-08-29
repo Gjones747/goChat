@@ -13,14 +13,14 @@ type rootModel struct {
 func InitialModel() rootModel {
 	view := rootModel{
 		currentPage:   0,
-		enterRoomView: initEnterRoomView(),
+		enterRoomView: initialEnterRoomView(),
 	}
 
 	return view
 }
 
 func (model rootModel) Init() tea.Cmd {
-	return nil
+	return tea.EnterAltScreen
 }
 
 func (model rootModel) View() string {
@@ -34,15 +34,10 @@ func (model rootModel) View() string {
 
 func (model rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-
-		case "ctrl+c", "q":
-			return model, tea.Quit
-
-		}
-
+	switch model.currentPage {
+	case 0:
+		newView, cmd := model.enterRoomView.Update(msg)
+		return newView, cmd
 	}
 
 	return model, nil
