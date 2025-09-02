@@ -1,11 +1,12 @@
 package views
 
 import (
-	"fmt"
 	"log"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // this is the first view that a user is greated with it should show a nice box to input a room code that the user wants to join
@@ -68,9 +69,55 @@ func (m enterRoomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (model enterRoomView) View() string {
-	return fmt.Sprintf(
-		"Welcome to goChat! \n\n %s %s",
-		"Please enter the roomcode for the room you want to join! \n",
-		model.textInput.View()) + "\n"
+func (m enterRoomView) introText() string {
+	boldStyle := lipgloss.NewStyle().Bold(true).Italic(true).Foreground(lipgloss.Color("5"))
+
+	paddingBetweenSize := 2
+	paddingTopFirst := ((m.windowHeight) / 6)
+
+
+	title := `
+ ______     ______     ______     __  __     ______     ______  
+/\  ___\   /\  __ \   /\  ___\   /\ \/ /    /\  ___\   /\__  _\ 
+\ \___  \  \ \ \/\ \  \ \ \____  \ \  _"-.  \ \  __\   \/_/\ \/ 
+ \/\_____\  \ \_____\  \ \_____\  \ \_\ \_\  \ \_____\    \ \_\ 
+  \/_____/   \/_____/   \/_____/   \/_/\/_/   \/_____/     \/_/ 
+                                                                `
+	
+    paddingBetween := strings.Repeat("\n", paddingBetweenSize)
+    paddingFirst := strings.Repeat("\n", paddingTopFirst)
+
+
+	windowStyle := lipgloss.NewStyle().
+        Align(lipgloss.Center).
+        Width(m.windowWidth-5).
+        Height(m.windowHeight-5).
+        BorderStyle(lipgloss.ASCIIBorder())
+
+	inputStyle := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		BorderStyle(lipgloss.ASCIIBorder())
+
+	return windowStyle.Render(lipgloss.JoinVertical(
+		lipgloss.Center,
+		paddingFirst,
+		title,
+		paddingBetween,
+		boldStyle.Render("Welcome to Socket, a lightweight terminal based chat application!"),
+		"To begin enter the roomcode for the chat room you want to join! \n",
+		inputStyle.Render(m.textInput.View())))
+
 }
+
+func (model enterRoomView) View() string {
+	return model.introText()
+}
+
+
+
+
+
+
+
+
+
