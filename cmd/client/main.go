@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"os"
 
-
-	"github.com/Gjones747/goChat/internal/client/views"
+	"github.com/Gjones747/goChat/client/views"
 	tea "github.com/charmbracelet/bubbletea"
 )
-
 
 func main() {
 	fmt.Println("here")
@@ -16,12 +14,10 @@ func main() {
 		views.InitialModel(),
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
-
-
-		)
+	)
 	if _, err := tui.Run(); err != nil {
-        fmt.Printf("Alas, there's been an error: %v", err)
-        os.Exit(1)
-    }
-	
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
+	}
+
 }

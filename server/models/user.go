@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 
-	socketcontroller "github.com/Gjones747/goChat/internal/server/socketController"
+	socketcontroller "github.com/Gjones747/goChat/webSocket"
 )
 
 type User struct {

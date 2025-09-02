@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Gjones747/goChat/internal/server/models"
-	"github.com/Gjones747/goChat/internal/server/routes"
+	"github.com/Gjones747/goChat/server/models"
+	"github.com/Gjones747/goChat/server/routes"
 )
 
 func main() {
