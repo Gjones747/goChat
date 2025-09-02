@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Gjones747/goChat/internal/server/models"
-	socketcontroller "github.com/Gjones747/goChat/internal/server/socketController"
+	"github.com/Gjones747/goChat/server/models"
+	socketcontroller "github.com/Gjones747/goChat/webSocket"
 )
 
 // This is where we define what happens when someone makes a room

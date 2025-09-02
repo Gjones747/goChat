@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Gjones747/goChat/internal/server/models"
-	socketcontroller "github.com/Gjones747/goChat/internal/server/socketController"
+	"github.com/Gjones747/goChat/server/models"
+	socketcontroller "github.com/Gjones747/goChat/webSocket"
 )
 
 // this is the code for someone when they join a room
