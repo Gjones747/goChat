@@ -6,17 +6,17 @@ import (
 
 // this is the root or main view of the cli chat interface
 type rootModel struct {
-	currentPage   int
+	currentPage int
 
-	roomView roomView
+	roomView      roomView
 	enterRoomView enterRoomView
 }
 
 func InitialModel() rootModel {
 	view := rootModel{
-		currentPage:   1,
+		currentPage: 0,
 
-		roomView: initialRoomView(),
+		roomView:      initialRoomView(),
 		enterRoomView: initialEnterRoomView(),
 	}
 
@@ -38,15 +38,33 @@ func (model rootModel) View() string {
 	}
 }
 
+type initializeWindow struct{}
+
 func (model rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		model.roomView.windowWidth = msg.Width
+		model.roomView.windowHeight = msg.Height
+		model.enterRoomView.windowWidth = msg.Width
+		model.enterRoomView.windowHeight = msg.Height
+	case roomCodeInput:
+		model.currentPage = 1
+		model.roomView.roomCode = msg.input
+		return model, func() tea.Msg {
+			return initializeWindow{}
+		}
+	}
 
 	switch model.currentPage {
 	case 0:
 		newView, cmd := model.enterRoomView.Update(msg)
-		return newView, cmd
+		model.enterRoomView = newView.(enterRoomView)
+		return model, cmd
 	case 1:
 		newView, cmd := model.roomView.Update(msg)
-		return newView, cmd
+		model.roomView = newView.(roomView)
+		return model, cmd
 	}
 
 	return model, nil

@@ -10,23 +10,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-
 const gap = "\n\n"
 
-			
 type roomView struct {
 	messages []string
 
-	viewport viewport.Model
-	textInput textinput.Model
+	viewport    viewport.Model
+	textInput   textinput.Model
 	senderStyle lipgloss.Style
 
-	ready bool
-	
-	windowWidth int 
-	windowHwight int
-}
+	ready    bool
+	roomCode string
 
+	windowWidth  int
+	windowHeight int
+}
 
 func initialRoomView() roomView {
 	ti := textinput.New()
@@ -37,26 +35,23 @@ func initialRoomView() roomView {
 
 	vp := viewport.New(40, 5)
 
-	return roomView {
-		messages: []string{},
-		viewport: vp,
+	return roomView{
+		messages:  []string{},
+		viewport:  vp,
 		textInput: ti,
 	}
 }
 
-
 func (model roomView) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.EnterAltScreen
 }
 
+func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
-func (m roomView) Update (msg tea.Msg) (tea.Model, tea.Cmd) {
-
-    var (
+	var (
 		tiCmd tea.Cmd
 		vpCmd tea.Cmd
 	)
-
 
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		if keyMsg.String() == "j" || keyMsg.String() == "k" {
@@ -72,10 +67,24 @@ func (m roomView) Update (msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case initializeWindow:
+
+		m.messages = append(m.messages, " ")
+		m.messages = append(m.messages, fmt.Sprintf("You just joined: %s", m.roomCode))
+
+		m.viewport.Width = m.windowWidth
+		m.textInput.Width = m.windowWidth
+		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 2
+
+		if len(m.messages) > 0 {
+			// Wrap content before setting it.
+			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+		}
+
 	case tea.WindowSizeMsg:
-		m.viewport.Width = msg.Width
-		m.textInput.Width = msg.Width
-		m.viewport.Height = msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 2
+		m.viewport.Width = m.windowWidth
+		m.textInput.Width = m.windowWidth
+		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 2
 
 		if len(m.messages) > 0 {
 			// Wrap content before setting it.
@@ -90,7 +99,7 @@ func (m roomView) Update (msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			m.messages = append(m.messages, m.senderStyle.Render("You: ")+m.textInput.Value())
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
-			m.textInput.Reset(    )
+			m.textInput.Reset()
 			m.viewport.GotoBottom()
 		}
 	}
@@ -98,8 +107,7 @@ func (m roomView) Update (msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(tiCmd, vpCmd)
 }
 
-
-func (m roomView) View() string  {
+func (m roomView) View() string {
 	return fmt.Sprintf(
 		"%s%s%s%s%s%s",
 		m.headerView(),
@@ -125,13 +133,11 @@ var (
 	}()
 )
 
-
 func (m roomView) headerView() string {
-	title := titleStyle.Render("Mr. Pager")
+	title := titleStyle.Render(m.roomCode)
 	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
 }
-
 
 func (m roomView) renderFooter() string {
 	info := "\n"
