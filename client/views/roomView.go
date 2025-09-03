@@ -26,6 +26,14 @@ type roomView struct {
 	windowHeight int
 }
 
+
+var (
+	statusMessageStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("5")).
+	Bold(true).
+	Italic(true)
+)
+
 func initialRoomView() roomView {
 	ti := textinput.New()
 	ti.Width = 100
@@ -69,22 +77,23 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case initializeWindow:
 
-		m.messages = append(m.messages, " ")
 		m.messages = append(m.messages, fmt.Sprintf("You just joined: %s", m.roomCode))
+		
 
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
-		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 2
+		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 3
 
-		if len(m.messages) > 0 {
+		if len(m.messages) == 1{
 			// Wrap content before setting it.
+			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Foreground(lipgloss.Color("5")).Bold(true).Italic(true).Render(strings.Join(m.messages, "\n")))
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		}
 
 	case tea.WindowSizeMsg:
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
-		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 2
+		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 3
 
 		if len(m.messages) > 0 {
 			// Wrap content before setting it.
@@ -108,23 +117,42 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m roomView) View() string {
-	return fmt.Sprintf(
-		"%s%s%s%s%s%s",
-		m.headerView(),
+	return lipgloss.PlaceHorizontal(m.windowWidth, lipgloss.Center, m.renderMessageViewPort())
+}
+
+func (m roomView) renderMessageViewPort() string {
+
+		borderStyle := lipgloss.ASCIIBorder()
+
+
+		windowStyle := lipgloss.NewStyle().
+        Align(lipgloss.Left).
+        Width(m.windowWidth-5).
+        Height(m.windowHeight-5).
+		BorderTop(true).BorderBottom(true).BorderRight(true).BorderLeft(true).
+        BorderStyle(borderStyle).
+		Padding(1)
+
+
+		display := fmt.Sprintf(
+		"%s%s%s%s",
 		m.viewport.View(),
 		m.renderFooter(),
 		"\n\n",
-		m.textInput.View(),
-		"\n\n",
-	)
+		m.textInput.View(),)
+                                 
+		return windowStyle.Render(display)
+
 }
 
 var (
 	titleStyle = func() lipgloss.Style {
-		b := lipgloss.RoundedBorder()
-		b.Right = "├"
+		b := lipgloss.ASCIIBorder()
+		b.Right = "|"
+		b.Left = "|"
 		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
 	}()
+
 
 	infoStyle = func() lipgloss.Style {
 		b := lipgloss.RoundedBorder()
@@ -135,12 +163,11 @@ var (
 
 func (m roomView) headerView() string {
 	title := titleStyle.Render(m.roomCode)
-	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
-	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
+	return lipgloss.JoinHorizontal(lipgloss.Center, title)
 }
 
 func (m roomView) renderFooter() string {
 	info := "\n"
-	line := strings.Repeat("─", max(0, m.viewport.Width))
+	line := strings.Repeat("-", max(0, m.viewport.Width-7))
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }

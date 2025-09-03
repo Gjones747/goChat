@@ -1,7 +1,6 @@
 package views
 
 import (
-	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -57,7 +56,6 @@ func (m enterRoomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			log.Println("here")
 			m.fieldComplete = true
 			return m, m.isComplete()
 		}
