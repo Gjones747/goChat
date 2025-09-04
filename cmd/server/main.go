@@ -14,6 +14,7 @@ func main() {
 
 	createRoomHandler := func(w http.ResponseWriter, r *http.Request) {
 
+		log.Println("Request Sent to /makeRoom")
 		roomCode := r.URL.Query().Get("room_code")
 		if roomCode == "" {
 			log.Println("bro you gotta send a room code when creating a room")

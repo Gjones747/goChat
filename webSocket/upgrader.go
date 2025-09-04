@@ -11,7 +11,7 @@ import (
 )
 
 func Upgrader(responseWriter http.ResponseWriter, request *http.Request) (net.Conn, error) {
-
+    log.Println("here")
 	if request.Header.Get("Sec-WebSocket-Version") != "13" || request.Header.Get("Upgrade") != "websocket" {
 		http.Error(responseWriter, "Did not send a websocket upgrade request", 400)
 		return nil, errors.New("did not send a socket request header")

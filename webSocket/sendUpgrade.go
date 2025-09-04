@@ -18,11 +18,9 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	conn, err := net.Dial("tcp", url.Host)
 
 	if err != nil {
-		log.Printf("Failed to connect to: %s", url)
+		log.Printf("Failed to connect to: %s", url.Host)
 		return nil, err
 	}
-
-	defer conn.Close()
 
 	keyBytes := make([]byte, 16)
 	if _, err = rand.Read(keyBytes); err != nil {
@@ -30,15 +28,22 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	}
 	clientKey := base64.StdEncoding.EncodeToString(keyBytes)
 
-	upgradeRequest := fmt.Sprintf("GET %s HTTP/1.1\r\n", url.Path) +
+	requestPathWithQuery, err := querySetter(url)
+	if err != nil {
+		return nil, err
+	}
+
+	upgradeRequest := fmt.Sprintf("GET %s HTTP/1.1\r\n", requestPathWithQuery) +
 		fmt.Sprintf("Host: %s\r\n", url.Host) +
-		"Upgrade: WebSocket\r\n" +
+		"Upgrade: websocket\r\n" +
 		"Connection: Upgrade\r\n" +
 		fmt.Sprintf("Sec-WebSocket-Key: %s\r\n", clientKey) +
 		"Sec-WebSocket-Version: 13\r\n" +
-		"Origin: http://localost\r\n"
+		"Origin: http://localHost\r\n" + 
+		"\r\n"
 
 	_, err = conn.Write([]byte(upgradeRequest))
+	log.Println("here2")
 
 	if err != nil {
 		return nil, err
@@ -47,11 +52,15 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	reader := bufio.NewReader(conn)
 
 	resp, err := http.ReadResponse(reader, &http.Request{Method: "GET"})
+	log.Println(resp)
 	if err != nil {
 		log.Println("Failed to read server respone")
 		return nil, err
 	}
+
 	defer resp.Body.Close()
+
+	log.Println(resp.StatusCode)
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
 		return nil, errors.New("Did not Recieve a switching protical response")
@@ -64,6 +73,7 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	}
 
 	// at this point the websocket connection has been established and the connection can be pased on
+	log.Println("WebSocket connection established")
 
 	return conn, nil
 }
@@ -83,3 +93,21 @@ func keyCheck(clientKey string, serverKey string) bool {
 
 	return false
 }
+
+func querySetter(url url.URL) (string, error){
+	if url.RawQuery != "" {
+		return url.Path + "?" + url.RawQuery, nil
+	}
+
+	return "", errors.New("Couldn't join url")
+}
+
+
+
+
+
+
+
+
+
+
