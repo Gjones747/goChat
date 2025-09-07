@@ -28,6 +28,8 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	}
 	clientKey := base64.StdEncoding.EncodeToString(keyBytes)
 
+	clientKey = "dGhlIHNhbXBsZSBub25jZQ=="
+
 	requestPathWithQuery, err := querySetter(url)
 	if err != nil {
 		return nil, err
@@ -68,7 +70,7 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 
 	serverKey := resp.Header.Get("Sec-WebSocket-Accept")
 
-	if !keyCheck(serverKey, clientKey) {
+	if !keyCheck(clientKey, serverKey) {
 		return nil, errors.New("Did not recieve the proper accept token")
 	}
 
@@ -79,13 +81,14 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 }
 
 func keyCheck(clientKey string, serverKey string) bool {
-
-	clientKey = clientKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+	clientKey = fmt.Sprintf("%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", clientKey)
 
 	hasher := sha1.New()
 	hasher.Write([]byte(clientKey))
 
 	signedClient := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	log.Println(signedClient)
+	log.Println(serverKey)
 
 	if signedClient == serverKey {
 		return true

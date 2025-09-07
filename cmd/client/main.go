@@ -12,7 +12,7 @@ import (
 
 func main() {
 	
-	url := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/makeRoom"}
+	url := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/joinRoom"}
 	q := url.Query()
 	q.Add("room_code", "sixseven")
 	q.Add("user_name", "joe")

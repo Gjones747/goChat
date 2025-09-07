@@ -31,6 +31,13 @@ func main() {
 			return
 		}
 
+		// checks to make sure the room exists if it doesnt it will call the createroom func
+
+		if _, ok := roomHub.Rooms[roomCode]; !ok {
+			routes.CreateRoom(w, r, roomHub, roomCode)
+			log.Println("Room doesnt exist - making a new one anyway")
+			return
+		}
 		routes.JoinRoom(w, r, roomHub, roomCode)
 	}
 

@@ -8,10 +8,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 )
 
 func Upgrader(responseWriter http.ResponseWriter, request *http.Request) (net.Conn, error) {
-    log.Println("here")
 	if request.Header.Get("Sec-WebSocket-Version") != "13" || request.Header.Get("Upgrade") != "websocket" {
 		http.Error(responseWriter, "Did not send a websocket upgrade request", 400)
 		return nil, errors.New("did not send a socket request header")
@@ -19,8 +19,8 @@ func Upgrader(responseWriter http.ResponseWriter, request *http.Request) (net.Co
 
 	var key string
 
-	if possibleKey := request.Header.Get("Sec-Websocket-Key"); possibleKey != "" {
-		key = possibleKey
+	if possibleKey := request.Header.Get("Sec-WebSocket-Key"); possibleKey != "" {
+		key = strings.TrimSpace(possibleKey)
 	} else {
 		http.Error(responseWriter, "Did not include an upgrade key", 404)
 		return nil, errors.New("did not send a socket request header")
@@ -43,11 +43,11 @@ func Upgrader(responseWriter http.ResponseWriter, request *http.Request) (net.Co
 	hasher.Write([]byte(returnKey))
 
 	hashedReturnKey := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-
+	
 	fmt.Fprintf(readWriteBuffer, "HTTP/1.1 101 Switching Protocols\r\n")
 	fmt.Fprintf(readWriteBuffer, "Upgrade: websocket\r\n")
 	fmt.Fprintf(readWriteBuffer, "Connection: Upgrade\r\n")
-	fmt.Fprintf(readWriteBuffer, "Sec-Websocket-Accept: %s\r\n", string(hashedReturnKey))
+	fmt.Fprintf(readWriteBuffer, "Sec-WebSocket-Accept: %s\r\n", hashedReturnKey)
 	fmt.Fprintf(readWriteBuffer, "\r\n")
 
 	readWriteBuffer.Flush()
