@@ -50,6 +50,7 @@ func (user *User) UserIOReader() {
 		message, err := socketcontroller.ReadFromUser(user.Connection)
 
 		if err != nil {
+			log.Println(err)
 			log.Println("user Reader failed to run")
 			return
 		}

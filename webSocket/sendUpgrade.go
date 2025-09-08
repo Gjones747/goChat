@@ -28,8 +28,6 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	}
 	clientKey := base64.StdEncoding.EncodeToString(keyBytes)
 
-	clientKey = "dGhlIHNhbXBsZSBub25jZQ=="
-
 	requestPathWithQuery, err := querySetter(url)
 	if err != nil {
 		return nil, err
@@ -45,7 +43,6 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 		"\r\n"
 
 	_, err = conn.Write([]byte(upgradeRequest))
-	log.Println("here2")
 
 	if err != nil {
 		return nil, err
@@ -54,15 +51,12 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	reader := bufio.NewReader(conn)
 
 	resp, err := http.ReadResponse(reader, &http.Request{Method: "GET"})
-	log.Println(resp)
 	if err != nil {
 		log.Println("Failed to read server respone")
 		return nil, err
 	}
 
 	defer resp.Body.Close()
-
-	log.Println(resp.StatusCode)
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
 		return nil, errors.New("Did not Recieve a switching protical response")
@@ -75,8 +69,6 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	}
 
 	// at this point the websocket connection has been established and the connection can be pased on
-	log.Println("WebSocket connection established")
-
 	return conn, nil
 }
 
@@ -87,8 +79,6 @@ func keyCheck(clientKey string, serverKey string) bool {
 	hasher.Write([]byte(clientKey))
 
 	signedClient := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-	log.Println(signedClient)
-	log.Println(serverKey)
 
 	if signedClient == serverKey {
 		return true
