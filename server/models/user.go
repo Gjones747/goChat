@@ -50,6 +50,7 @@ func (user *User) UserIOReader() {
 
 	for {
 		message, err := socketcontroller.ReadFromUser(user.Connection)
+		log.Println(string(message))
 
 		if err != nil {
 			log.Println(err)
@@ -63,7 +64,6 @@ func (user *User) UserIOReader() {
 			log.Println(err)
 			return
 		}
-
 		user.SendMessage(encodedMessage)
 	}
 

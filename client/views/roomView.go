@@ -37,9 +37,10 @@ type roomView struct {
 
 	connection net.Conn
 
-	incomingMessages chan api.Message
 	incomingUsers chan []byte
 }
+
+var incomingMessages chan api.Message = make(chan api.Message, 10)
 
 
 //var (
@@ -49,25 +50,35 @@ type roomView struct {
 //	Italic(true)
 //)
 
-func (m *roomView) watchIncoming() {
-	for {
-		select {
-		case msg := <-m.incomingMessages:
-			formatedMsg := fmt.Sprintf("%s: %s", msg.SenderName, msg.Contents)
-			m.messages = append(m.messages, formatedMsg)
-		case user := <-m.incomingUsers:
-			fmt.Println(string(user))
-		}
-	}
+
+type incomingMessage struct {
+	message string
 }
 
-func (m roomView) sendMessage(contents string) {
+func (m *roomView) watchIncoming() tea.Cmd {
+    return func() tea.Msg {
+        select {
+        case msg := <-incomingMessages:
+			log.Println("well well well")
+            formattedMsg := fmt.Sprintf("%s: %s", msg.SenderName, msg.Contents)
+            return incomingMessage{message: formattedMsg}
+
+        //case user := <-m.incomingUsers:
+        //    fmt.Println(string(user))
+        //    return nil
+        }
+    }
+}
+
+func (m *roomView) sendMessage(contents string) {
 	newMessage := api.NewMessage(m.userName, []byte(contents))
+
+
 
 	socketcontroller.SendFramesToServer(m.connection, newMessage)
 }
 
-func (m roomView) watchConnection() {
+func (m *roomView) watchConnection() {
 	for {
 		data, err := socketcontroller.ClientFrameReader(m.connection)
 
@@ -89,7 +100,8 @@ func (m roomView) watchConnection() {
 				log.Println("failed to parse message json")
 				return
 			}
-			m.incomingMessages <-msgData
+			log.Println(string(msgData.Contents))
+			incomingMessages <-msgData
 
 		}
 	}
@@ -111,13 +123,12 @@ func initialRoomView() roomView {
 		textInput: ti,
 		users: []string{},
 
-		incomingMessages: make(chan api.Message, 10),
 		incomingUsers: make(chan []byte, 10),
 	}
 }
 
 func (model roomView) Init() tea.Cmd {
-	return tea.EnterAltScreen
+	return model.watchIncoming()
 }
 
 func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -160,7 +171,6 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.messages = append(m.messages, fmt.Sprintf("Socket Connection Established! Hostname: %s just joined: %s", m.userName, m.roomCode))
 		
-		go m.watchIncoming()
 		go m.watchConnection()
 
 		m.viewport.Width = m.windowWidth
@@ -173,6 +183,10 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		}
 
+	case incomingMessage:
+		m.messages = append(m.messages, msg.message)
+		return m, m.watchIncoming()
+		
 	case tea.WindowSizeMsg:
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
@@ -198,7 +212,7 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, tea.Batch(tiCmd, vpCmd)
+	return m, tea.Batch(tiCmd, vpCmd, m.watchIncoming())
 }
 
 func (m roomView) View() string {
