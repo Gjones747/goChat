@@ -2,12 +2,20 @@ package socketcontroller
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"log"
 	"net"
+
+	"github.com/Gjones747/goChat/api"
 )
 
 // this function essentially sends messages from the room back to the user
-func SendToUser(connection net.Conn, message []byte) {
+func SendToUser(connection net.Conn, rawMessage api.Envelope) {
+	
+	message, err := json.Marshal(rawMessage)
+	if err != nil {
+		log.Println(err)
+	}
 
 	var frame []byte
 	var length = len(message)
@@ -32,7 +40,7 @@ func SendToUser(connection net.Conn, message []byte) {
 	}
 
 	frame = append(frame, message...)
-	_, err := connection.Write(frame)
+	_, err = connection.Write(frame)
 	if err != nil {
 		log.Println(err)
 	}

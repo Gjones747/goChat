@@ -1,9 +1,11 @@
 package models
 
 import (
+	"encoding/json"
 	"log"
 	"net"
 
+	"github.com/Gjones747/goChat/api"
 	socketcontroller "github.com/Gjones747/goChat/webSocket"
 )
 
@@ -11,7 +13,7 @@ type User struct {
 	room       *Room
 	Connection net.Conn
 	Name       string
-	send       chan []byte
+	send       chan api.Envelope
 }
 
 func NewUser(connection net.Conn, userName string) *User {
@@ -19,7 +21,7 @@ func NewUser(connection net.Conn, userName string) *User {
 		room:       nil,
 		Connection: connection,
 		Name:       userName,
-		send:       make(chan []byte),
+		send:       make(chan api.Envelope),
 	}
 }
 
@@ -33,11 +35,11 @@ func (user *User) userIOWriter() {
 	}
 }
 
-func (user *User) SendMessage(message []byte) {
+func (user *User) SendMessage(message api.Envelope) {
 	user.room.messages <- message
 }
 
-func (user *User) Recieve(message []byte) {
+func (user *User) Recieve(message api.Envelope) {
 	user.send <- message
 }
 
@@ -55,7 +57,14 @@ func (user *User) UserIOReader() {
 			return
 		}
 
-		user.SendMessage(message)
+		var encodedMessage api.Envelope
+		err = json.Unmarshal(message, &encodedMessage)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		user.SendMessage(encodedMessage)
 	}
 
 }

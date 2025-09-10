@@ -1,13 +1,16 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/Gjones747/goChat/api"
 )
 
 type Room struct {
 	users      map[*User]bool
-	messages   chan []byte
+	messages   chan api.Envelope
 	register   chan *User
 	deregester chan *User
 }
@@ -16,7 +19,7 @@ type Room struct {
 func InitRoom() *Room {
 	newRoom := &Room{
 		users:      make(map[*User]bool),
-		messages:   make(chan []byte, 10),
+		messages:   make(chan api.Envelope, 10),
 		register:   make(chan *User),
 		deregester: make(chan *User),
 	}
@@ -50,7 +53,7 @@ func (room *Room) StartRoom() bool {
 }
 
 // this functions sends the users message to each person in the room with them
-func (room *Room) sendMessage(message []byte) {
+func (room *Room) sendMessage(message api.Envelope) {
 	for key, val := range room.users {
 		if val {
 			key.Recieve(message)
@@ -77,6 +80,13 @@ func (room *Room) RemoveUser(user *User) {
 	room.deregester <- user
 }
 
-func (room *Room) AddMessage(message []byte) {
-	room.messages <- message
+func (room *Room) AddMessage(message []byte)  {
+	var messageJson api.Envelope
+	err := json.Unmarshal(message, &messageJson)
+    
+	if err != nil {
+		log.Println(err)
+	}
+
+	room.messages <- messageJson
 }

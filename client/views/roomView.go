@@ -63,18 +63,13 @@ func (m *roomView) watchIncoming() {
 
 func (m roomView) sendMessage(contents string) {
 	newMessage := api.NewMessage(m.userName, []byte(contents))
-	newMessageJson, err := json.Marshal(newMessage)
 
-	if err != nil {
-		log.Println("error translating message object to json")
-	}
-
-	socketcontroller.SendToUser(m.connection, newMessageJson)
+	socketcontroller.SendFramesToServer(m.connection, newMessage)
 }
 
 func (m roomView) watchConnection() {
 	for {
-		data, err := socketcontroller.ReadFromUser(m.connection)
+		data, err := socketcontroller.ClientFrameReader(m.connection)
 
 		if err != nil {
 			log.Println("connection error")
@@ -281,13 +276,3 @@ func (m roomView) initializeConnection() (net.Conn, error) {
 	return connection, nil
 
 }
-
-
-
-
-
-
-
-
-
-
