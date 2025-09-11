@@ -21,7 +21,7 @@ const gap = "\n\n"
 
 type roomView struct {
 	messages []string
-	users []string
+	users    []string
 
 	viewport    viewport.Model
 	textInput   textinput.Model
@@ -37,11 +37,11 @@ type roomView struct {
 
 	connection net.Conn
 
-	incomingUsers chan []byte
+	incomingTeaMsg chan incomingMessage
+	incomingUsers  chan []byte
 }
 
 var incomingMessages chan api.Message = make(chan api.Message, 10)
-
 
 //var (
 //	statusMessageStyle = lipgloss.NewStyle().
@@ -50,30 +50,28 @@ var incomingMessages chan api.Message = make(chan api.Message, 10)
 //	Italic(true)
 //)
 
-
 type incomingMessage struct {
 	message string
 }
 
-func (m *roomView) watchIncoming() tea.Cmd {
-    return func() tea.Msg {
-        select {
-        case msg := <-incomingMessages:
-			log.Println("well well well")
-            formattedMsg := fmt.Sprintf("%s: %s", msg.SenderName, msg.Contents)
-            return incomingMessage{message: formattedMsg}
+func (m *roomView) startIncomingRelay() {
+	go func() {
+		for msg := range incomingMessages { // incomingMessages is your package channel of api.Message
+			formatted := fmt.Sprintf("%s-%s: %s", msg.DateTime, msg.SenderName, msg.Contents)
+			m.incomingTeaMsg <- incomingMessage{message: formatted}
+		}
+		// When incomingMessages is closed, this goroutine exits cleanly
+	}()
+}
 
-        //case user := <-m.incomingUsers:
-        //    fmt.Println(string(user))
-        //    return nil
-        }
-    }
+func (m *roomView) watchIncoming() tea.Cmd {
+	return func() tea.Msg {
+		return <-m.incomingTeaMsg // blocks until relay pushes a formatted incomingMessage
+	}
 }
 
 func (m *roomView) sendMessage(contents string) {
 	newMessage := api.NewMessage(m.userName, []byte(contents))
-
-
 
 	socketcontroller.SendFramesToServer(m.connection, newMessage)
 }
@@ -100,8 +98,7 @@ func (m *roomView) watchConnection() {
 				log.Println("failed to parse message json")
 				return
 			}
-			log.Println(string(msgData.Contents))
-			incomingMessages <-msgData
+			incomingMessages <- msgData
 
 		}
 	}
@@ -121,14 +118,15 @@ func initialRoomView() roomView {
 		messages:  []string{},
 		viewport:  vp,
 		textInput: ti,
-		users: []string{},
+		users:     []string{},
 
-		incomingUsers: make(chan []byte, 10),
+		incomingTeaMsg: make(chan incomingMessage, 10),
+		incomingUsers:  make(chan []byte, 10),
 	}
 }
 
 func (model roomView) Init() tea.Cmd {
-	return model.watchIncoming()
+	return nil
 }
 
 func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -153,15 +151,14 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case initializeWindow:
-		
 
 		currentUser, err := user.Current()
-        if err != nil {
+		if err != nil {
 		}
-		
+
 		m.userName = currentUser.Username
 
-		connection, err := m.initializeConnection() 
+		connection, err := m.initializeConnection()
 
 		if err != nil {
 			// todo RETURN ERROR SCREEN VIEW or go back to join room or smth just show an error ahh handling
@@ -170,23 +167,28 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.connection = connection
 
 		m.messages = append(m.messages, fmt.Sprintf("Socket Connection Established! Hostname: %s just joined: %s", m.userName, m.roomCode))
-		
+
 		go m.watchConnection()
+		m.startIncomingRelay()
 
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
 		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 3
 
-		if len(m.messages) == 1{
+		if len(m.messages) == 1 {
 			// Wrap content before setting it.
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Foreground(lipgloss.Color("5")).Bold(true).Italic(true).Render(strings.Join(m.messages, "\n")))
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		}
+		return m, m.watchIncoming()
 
 	case incomingMessage:
 		m.messages = append(m.messages, msg.message)
+		// update viewport content and scroll
+		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+		m.viewport.GotoBottom()
 		return m, m.watchIncoming()
-		
+
 	case tea.WindowSizeMsg:
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
@@ -205,14 +207,13 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			userInput := m.textInput.Value()
 			m.sendMessage(userInput)
-			m.messages = append(m.messages, m.senderStyle.Render("You: ") + userInput)
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 			m.textInput.Reset()
 			m.viewport.GotoBottom()
 		}
 	}
 
-	return m, tea.Batch(tiCmd, vpCmd, m.watchIncoming())
+	return m, tea.Batch(tiCmd, vpCmd)
 }
 
 func (m roomView) View() string {
@@ -221,26 +222,24 @@ func (m roomView) View() string {
 
 func (m roomView) renderMessageViewPort() string {
 
-		borderStyle := lipgloss.ASCIIBorder()
+	borderStyle := lipgloss.ASCIIBorder()
 
-
-		windowStyle := lipgloss.NewStyle().
-        Align(lipgloss.Left).
-        Width(m.windowWidth-5).
-        Height(m.windowHeight-5).
+	windowStyle := lipgloss.NewStyle().
+		Align(lipgloss.Left).
+		Width(m.windowWidth - 5).
+		Height(m.windowHeight - 5).
 		BorderTop(true).BorderBottom(true).BorderRight(true).BorderLeft(true).
-        BorderStyle(borderStyle).
+		BorderStyle(borderStyle).
 		Padding(1)
 
-
-		display := fmt.Sprintf(
+	display := fmt.Sprintf(
 		"%s%s%s%s",
 		m.viewport.View(),
 		m.renderFooter(),
 		"\n\n",
-		m.textInput.View(),)
-                                 
-		return windowStyle.Render(display)
+		m.textInput.View())
+
+	return windowStyle.Render(display)
 
 }
 
@@ -251,7 +250,6 @@ var (
 		b.Left = "|"
 		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
 	}()
-
 
 	infoStyle = func() lipgloss.Style {
 		b := lipgloss.RoundedBorder()
