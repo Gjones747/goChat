@@ -26,3 +26,21 @@ func NewMessage(SenderUserName string, messageContents []byte) Envelope {
 	}
 
 }
+
+//userlist just contains a list of usernames
+func NewUserList(users []string) (Envelope, error) {
+	userList := UserList {
+		users: users,
+	}
+
+
+	NewUserListJson, err := json.Marshal(userList) 
+	if err != nil {
+		return Envelope{}, err
+	}
+
+	return Envelope{
+		DataType: "userList",
+		Data: NewUserListJson,
+	}, nil
+}
