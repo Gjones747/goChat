@@ -9,19 +9,25 @@ import (
 )
 
 type Room struct {
+	roomCode string
 	users      map[*User]bool
 	messages   chan api.Envelope
 	register   chan *User
 	deregester chan *User
+	
+	hub *RoomHub
 }
 
 // each new room has to start with a user
-func InitRoom() *Room {
+func InitRoom(hub *RoomHub, code string) *Room {
 	newRoom := &Room{
+		roomCode: code,
 		users:      make(map[*User]bool),
 		messages:   make(chan api.Envelope, 10),
 		register:   make(chan *User),
 		deregester: make(chan *User),
+
+		hub: hub,
 	}
 
 	return newRoom
@@ -42,6 +48,10 @@ func (room *Room) StartRoom() bool {
 			room.users[user] = false
 			log.Printf("User: %s left the room\n", user.Name)
 			if !room.checkRoom() {
+				delete(room.hub.Rooms, room.roomCode)
+				if _, ok := room.hub.Rooms[room.roomCode]; !ok {
+					log.Printf("Successfully deleted room: %s", room.roomCode)
+				}
 				return false
 			}
 		case message := <-room.messages:

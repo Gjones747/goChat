@@ -24,6 +24,7 @@ type roomView struct {
 	users    []string
 
 	viewport    viewport.Model
+	userListViewPort viewport.Model
 	textInput   textinput.Model
 	senderStyle lipgloss.Style
 
@@ -114,8 +115,11 @@ func initialRoomView() roomView {
 
 	vp := viewport.New(40, 5)
 
+	userListVP := viewport.New(40, 5)
+
 	return roomView{
 		messages:  []string{},
+		userListViewPort: userListVP,
 		viewport:  vp,
 		textInput: ti,
 		users:     []string{},
@@ -134,6 +138,7 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		tiCmd tea.Cmd
 		vpCmd tea.Cmd
+		userVPCmd tea.Cmd
 	)
 
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
@@ -142,11 +147,13 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.textInput, tiCmd = m.textInput.Update(msg)
 			m.viewport, vpCmd = m.viewport.Update(msg)
+			m.userListViewPort, userVPCmd = m.userListViewPort.Update(msg)
 		}
 
 	} else {
 		m.textInput, tiCmd = m.textInput.Update(msg)
 		m.viewport, vpCmd = m.viewport.Update(msg)
+		m.userListViewPort, userVPCmd = m.userListViewPort.Update(msg)
 	}
 
 	switch msg := msg.(type) {
@@ -174,6 +181,7 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
 		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 3
+
 
 		if len(m.messages) == 1 {
 			// Wrap content before setting it.
@@ -213,21 +221,43 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, tea.Batch(tiCmd, vpCmd)
+	return m, tea.Batch(tiCmd, vpCmd, userVPCmd)
+}
+
+
+func (m roomView) renderUserList(width, height int) string{
+	userListStyle := lipgloss.NewStyle().
+		BorderStyle(lipgloss.ASCIIBorder()).
+		Width(width).
+		Height(height)
+
+	return userListStyle.Render(m.userListViewPort.View())
 }
 
 func (m roomView) View() string {
-	return lipgloss.PlaceHorizontal(m.windowWidth, lipgloss.Center, m.renderMessageViewPort())
+	// Compute split sizes
+	messageWidth := int(float64(m.windowWidth) * 0.8)
+	userListWidth := m.windowWidth - messageWidth
+	contentHeight := m.windowHeight - 5
+
+	// Build main content row (messages + user list)
+	contentRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		m.renderMessageViewPort(messageWidth, contentHeight),
+		m.renderUserList(userListWidth, contentHeight+1),
+	)
+	return lipgloss.PlaceHorizontal(m.windowWidth, lipgloss.Center, contentRow)
 }
 
-func (m roomView) renderMessageViewPort() string {
+func (m roomView) renderMessageViewPort(width, height int) string {
 
+	width = width - 7
 	borderStyle := lipgloss.ASCIIBorder()
 
 	windowStyle := lipgloss.NewStyle().
 		Align(lipgloss.Left).
-		Width(m.windowWidth - 5).
-		Height(m.windowHeight - 5).
+		Width(width).
+		Height(height).
 		BorderTop(true).BorderBottom(true).BorderRight(true).BorderLeft(true).
 		BorderStyle(borderStyle).
 		Padding(1)
@@ -235,7 +265,7 @@ func (m roomView) renderMessageViewPort() string {
 	display := fmt.Sprintf(
 		"%s%s%s%s",
 		m.viewport.View(),
-		m.renderFooter(),
+		m.renderFooter(width),
 		"\n\n",
 		m.textInput.View())
 
@@ -263,9 +293,9 @@ func (m roomView) headerView() string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, title)
 }
 
-func (m roomView) renderFooter() string {
+func (m roomView) renderFooter(width int) string {
 	info := "\n"
-	line := strings.Repeat("-", max(0, m.viewport.Width-7))
+	line := strings.Repeat("-", max(0, width-2))
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 

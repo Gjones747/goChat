@@ -23,7 +23,7 @@ func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHu
 
 	newUser := models.NewUser(connection, userName)
 
-	newRoom := models.InitRoom()
+	newRoom := models.InitRoom(roomHub, roomCode)
 	roomHub.Rooms[roomCode] = newRoom
 	newUser.JoinRoom(roomHub.Rooms[roomCode])
 
