@@ -224,14 +224,39 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(tiCmd, vpCmd, userVPCmd)
 }
 
+func (m roomView) renderUserList(width, height int) string {
+	// Room info at the top
+	logoStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
+	roomInfoStyle := lipgloss.NewStyle().
+		BorderStyle(lipgloss.ASCIIBorder()).
+		PaddingLeft(2).
+		Width(width)
+	roomTitleStyle := lipgloss.NewStyle().
+		Bold(true)
+	roomCodeStyle := lipgloss.NewStyle().Bold(true).Italic(true).Foreground(lipgloss.Color("5"))
+	commandsHeaderText := roomCodeStyle.Render("\nCOMMANDS:")
+	quitText := logoStyle.Render(`"q"`) + roomTitleStyle.Render(" or ") + logoStyle.Render(`"Ctrl+c"`) + roomTitleStyle.Render(" to quit")
+	roomCodeText := roomCodeStyle.Render("\nROOM CODE: ") + roomTitleStyle.Render(m.roomCode)
+	title := lipgloss.JoinVertical(lipgloss.Left, logoStyle.Render(`
+   ____         __       __ 
+  / __/__  ____/ /_____ / /_
+ _\ \/ _ \/ __/  '_/ -_) __/
+/___/\___/\__/_/\_\\__/\__/ `), roomCodeText, commandsHeaderText, quitText, "\n")
+	renderedInfo := roomInfoStyle.Render(title)
 
-func (m roomView) renderUserList(width, height int) string{
+	
+
+	// User list viewport below the room info
+	userListHeight := height - lipgloss.Height(renderedInfo)
 	userListStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.ASCIIBorder()).
 		Width(width).
-		Height(height)
+		Height(userListHeight)
 
-	return userListStyle.Render(m.userListViewPort.View())
+	renderedList := userListStyle.Render(m.userListViewPort.View())
+
+	// Combine room info + user list vertically
+	return lipgloss.JoinVertical(lipgloss.Left, renderedInfo, renderedList)
 }
 
 func (m roomView) View() string {
