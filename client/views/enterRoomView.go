@@ -85,6 +85,9 @@ func (m enterRoomView) introText() string {
     paddingBetween := strings.Repeat("\n", paddingBetweenSize)
     paddingFirst := strings.Repeat("\n", paddingTopFirst)
 
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
+
+	title = titleStyle.Render(title)
 
 	windowStyle := lipgloss.NewStyle().
         Align(lipgloss.Center).
