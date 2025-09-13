@@ -9,19 +9,19 @@ import (
 )
 
 type Room struct {
-	roomCode string
+	roomCode   string
 	users      map[*User]bool
 	messages   chan api.Envelope
 	register   chan *User
 	deregester chan *User
-	
+
 	hub *RoomHub
 }
 
 // each new room has to start with a user
 func InitRoom(hub *RoomHub, code string) *Room {
 	newRoom := &Room{
-		roomCode: code,
+		roomCode:   code,
 		users:      make(map[*User]bool),
 		messages:   make(chan api.Envelope, 10),
 		register:   make(chan *User),
@@ -42,6 +42,7 @@ func (room *Room) StartRoom() bool {
 			go user.UserIOReader()
 			go user.userIOWriter()
 			fmt.Println("New user added")
+			room.sendUserList()
 		case user := <-room.deregester:
 			user.Connection.Close()
 			close(user.send)
@@ -49,11 +50,12 @@ func (room *Room) StartRoom() bool {
 			log.Printf("User: %s left the room\n", user.Name)
 			if !room.checkRoom() {
 				delete(room.hub.Rooms, room.roomCode)
-				if _, ok := room.hub.Rooms[room.roomCode]; !ok {
-					log.Printf("Successfully deleted room: %s", room.roomCode)
+				if _, ok := room.hub.Rooms[room.roomCode]; ok {
+					log.Printf("delete failed")
 				}
 				return false
 			}
+			room.sendUserList()
 		case message := <-room.messages:
 			log.Printf("messege: %s", message)
 			// this is where we need to send the message to everyone in the room essentially
@@ -69,6 +71,24 @@ func (room *Room) sendMessage(message api.Envelope) {
 			key.Recieve(message)
 		}
 	}
+}
+
+func (room *Room) sendUserList() {
+	userList := []string{}
+
+	for user, inRoom := range room.users {
+		if inRoom {
+			userList = append(userList, user.Name)
+		}
+	}
+
+	userListEnvelope, err := api.NewUserList(userList)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	room.sendMessage(userListEnvelope)
 }
 
 // this function essentially checks if there are any users left in the room and returns false if there aren't any
@@ -90,10 +110,10 @@ func (room *Room) RemoveUser(user *User) {
 	room.deregester <- user
 }
 
-func (room *Room) AddMessage(message []byte)  {
+func (room *Room) AddMessage(message []byte) {
 	var messageJson api.Envelope
 	err := json.Unmarshal(message, &messageJson)
-    
+
 	if err != nil {
 		log.Println(err)
 	}

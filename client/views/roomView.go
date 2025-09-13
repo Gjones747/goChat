@@ -39,10 +39,11 @@ type roomView struct {
 	connection net.Conn
 
 	incomingTeaMsg chan incomingMessage
-	incomingUsers  chan []byte
+	incomingUserListMsg chan incomingUserListMessage
 }
 
 var incomingMessages chan api.Message = make(chan api.Message, 10)
+var incomingUserList chan api.UserList = make(chan api.UserList, 10)
 
 //var (
 //	statusMessageStyle = lipgloss.NewStyle().
@@ -55,6 +56,10 @@ type incomingMessage struct {
 	message string
 }
 
+type incomingUserListMessage struct {
+	users []string
+}
+
 func (m *roomView) startIncomingRelay() {
 	go func() {
 		for msg := range incomingMessages { // incomingMessages is your package channel of api.Message
@@ -64,10 +69,24 @@ func (m *roomView) startIncomingRelay() {
 		// When incomingMessages is closed, this goroutine exits cleanly
 	}()
 }
+func (m *roomView) startIncomingUserListRelay() {
+	go func() {
+		for msg := range incomingUserList { // incomingMessages is your package channel of api.Message
+			m.incomingUserListMsg <- incomingUserListMessage{users: msg.Users}
+		}
+		// When incomingMessages is closed, this goroutine exits cleanly
+	}()
+}
 
 func (m *roomView) watchIncoming() tea.Cmd {
 	return func() tea.Msg {
 		return <-m.incomingTeaMsg // blocks until relay pushes a formatted incomingMessage
+	}
+}
+
+func (m *roomView) watchIncomingUserList() tea.Cmd {
+	return func() tea.Msg{
+		return <-m.incomingUserListMsg
 	}
 }
 
@@ -101,6 +120,14 @@ func (m *roomView) watchConnection() {
 			}
 			incomingMessages <- msgData
 
+		case "userList":
+			var userListData api.UserList
+			if err := json.Unmarshal(dataEnvelope.Data, &userListData); err != nil {
+				log.Println("failed to parse userList json")
+				return
+			}
+			incomingUserList <- userListData
+			
 		}
 	}
 
@@ -125,7 +152,7 @@ func initialRoomView() roomView {
 		users:     []string{},
 
 		incomingTeaMsg: make(chan incomingMessage, 10),
-		incomingUsers:  make(chan []byte, 10),
+		incomingUserListMsg:  make(chan incomingUserListMessage, 10),
 	}
 }
 
@@ -177,6 +204,7 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		go m.watchConnection()
 		m.startIncomingRelay()
+		m.startIncomingUserListRelay()
 
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
@@ -188,7 +216,7 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Foreground(lipgloss.Color("5")).Bold(true).Italic(true).Render(strings.Join(m.messages, "\n")))
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		}
-		return m, m.watchIncoming()
+		return m, tea.Batch(m.watchIncoming(), m.watchIncomingUserList())
 
 	case incomingMessage:
 		m.messages = append(m.messages, msg.message)
@@ -196,6 +224,12 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		m.viewport.GotoBottom()
 		return m, m.watchIncoming()
+
+	case incomingUserListMessage:
+		m.users = msg.users
+		m.userListViewPort.SetContent(lipgloss.NewStyle().Width(m.userListViewPort.Width).Render(strings.Join(m.users, "\n")))
+		m.userListViewPort.GotoBottom()
+		return m, m.watchIncomingUserList()
 
 	case tea.WindowSizeMsg:
 		m.viewport.Width = m.windowWidth
@@ -226,23 +260,30 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m roomView) renderUserList(width, height int) string {
 	// Room info at the top
-	logoStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
+	boldOrangeStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
 	roomInfoStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.ASCIIBorder()).
 		PaddingLeft(2).
 		Width(width)
-	roomTitleStyle := lipgloss.NewStyle().
+	boldStyle := lipgloss.NewStyle().
 		Bold(true)
 	roomCodeStyle := lipgloss.NewStyle().Bold(true).Italic(true).Foreground(lipgloss.Color("5"))
 	commandsHeaderText := roomCodeStyle.Render("\nCOMMANDS:")
-	quitText := logoStyle.Render(`"q"`) + roomTitleStyle.Render(" or ") + logoStyle.Render(`"Ctrl+c"`) + roomTitleStyle.Render(" to quit")
-	roomCodeText := roomCodeStyle.Render("\nROOM CODE: ") + roomTitleStyle.Render(m.roomCode)
-	title := lipgloss.JoinVertical(lipgloss.Left, logoStyle.Render(`
+	quitText := boldOrangeStyle.Render(`"q"`) + boldStyle.Render(" or ") + boldOrangeStyle.Render(`"Ctrl+c"`) + boldStyle.Render(" to quit")
+	roomCodeText := roomCodeStyle.Render("\nROOM CODE: ") + boldStyle.Render(m.roomCode)
+	title := lipgloss.JoinVertical(lipgloss.Left, boldOrangeStyle.Render(`
    ____         __       __ 
   / __/__  ____/ /_____ / /_
  _\ \/ _ \/ __/  '_/ -_) __/
 /___/\___/\__/_/\_\\__/\__/ `), roomCodeText, commandsHeaderText, quitText, "\n")
-	renderedInfo := roomInfoStyle.Render(title)
+	var renderedInfo string
+	if width - 2>= lipgloss.Width(title) {
+		renderedInfo = roomInfoStyle.Render(title)
+	} else {
+		title = lipgloss.JoinVertical(lipgloss.Left, roomCodeText,commandsHeaderText, quitText, "\n")
+		renderedInfo = roomInfoStyle.Render(title)
+
+	}
 
 	
 
