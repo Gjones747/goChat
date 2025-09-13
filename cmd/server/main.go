@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Gjones747/goChat/server/models"
 	"github.com/Gjones747/goChat/server/routes"
@@ -11,6 +12,12 @@ import (
 func main() {
 	mux := http.NewServeMux()
 	roomHub := models.MakeRoomHub()
+
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
 
 	createRoomHandler := func(w http.ResponseWriter, r *http.Request) {
 
@@ -46,5 +53,5 @@ func main() {
 	mux.Handle("GET /makeRoom", http.HandlerFunc(createRoomHandler))
 	mux.Handle("GET /joinRoom", http.HandlerFunc(joinRoomHandler))
 
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", mux))
+	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, mux))
 }
