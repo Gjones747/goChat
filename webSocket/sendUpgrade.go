@@ -37,20 +37,17 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 
 	if err != nil {
 		log.Printf("Failed to connect to: %s", url.Host)
-		log.Fatal(err)
 		return nil, err
 	}
 
 	keyBytes := make([]byte, 16)
 	if _, err = rand.Read(keyBytes); err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 	clientKey := base64.StdEncoding.EncodeToString(keyBytes)
 
 	requestPathWithQuery, err := querySetter(url)
 	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 
@@ -60,13 +57,12 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 		"Connection: Upgrade\r\n" +
 		fmt.Sprintf("Sec-WebSocket-Key: %s\r\n", clientKey) +
 		"Sec-WebSocket-Version: 13\r\n" +
-		"Origin: null\r\n" +
+		"Origin: http://localHost\r\n" +
 		"\r\n"
 
 	_, err = conn.Write([]byte(upgradeRequest))
 
 	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 
@@ -81,14 +77,12 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
-		log.Fatal(resp)
 		return nil, errors.New("Did not Recieve a switching protical response")
 	}
 
 	serverKey := resp.Header.Get("Sec-WebSocket-Accept")
 
 	if !keyCheck(clientKey, serverKey) {
-		log.Fatal("did not revive proper accept token")
 		return nil, errors.New("Did not recieve the proper accept token")
 	}
 
