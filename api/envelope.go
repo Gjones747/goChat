@@ -10,10 +10,13 @@ type Envelope struct {
 	Data     json.RawMessage
 }
 
-func NewMessage(SenderUserName string, messageContents []byte) Envelope {
+func NewMessage(messageType string, senderUserName string, sessionID []byte, messageContents []byte) Envelope {
 	currentTime := time.Now()
 	message := Message{
-		SenderName: SenderUserName,
+
+		Type: messageType,
+		SenderName: senderUserName,
+		SessionID: sessionID,
 		DateTime:   currentTime,
 		Contents:   messageContents,
 	}
