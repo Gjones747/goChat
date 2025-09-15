@@ -12,6 +12,7 @@ import (
 
 func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHub *models.RoomHub, roomCode string) error {
 	userName := request.URL.Query().Get("user_name")
+	sessionID := request.URL.Query().Get("session_id")
 	if userName == "" {
 		return errors.New("did not send a user_name query param")
 	}
@@ -21,7 +22,7 @@ func CreateRoom(responeWriter http.ResponseWriter, request *http.Request, roomHu
 		return err
 	}
 
-	newUser := models.NewUser(connection, userName)
+	newUser := models.NewUser(connection, userName, []byte(sessionID))
 
 	newRoom := models.InitRoom(roomHub, roomCode)
 	roomHub.Rooms[roomCode] = newRoom

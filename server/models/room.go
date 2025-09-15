@@ -74,11 +74,12 @@ func (room *Room) sendMessage(message api.Envelope) {
 }
 
 func (room *Room) sendUserList() {
-	userList := []string{}
+	userList := [][]string{}
 
 	for user, inRoom := range room.users {
 		if inRoom {
-			userList = append(userList, user.Name)
+			userData := [][]string{{user.Name, string(user.SessionID)}}
+			userList = append(userList, userData...)
 		}
 	}
 

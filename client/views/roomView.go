@@ -31,6 +31,7 @@ type roomView struct {
 
 	userName  string
 	sessionID []byte
+	stringSessionID string
 
 	ready    bool
 	roomCode string
@@ -95,7 +96,15 @@ func (m *roomView) startIncomingRelay() {
 func (m *roomView) startIncomingUserListRelay() {
 	go func() {
 		for msg := range incomingUserList { // incomingMessages is your package channel of api.Message
-			m.incomingUserListMsg <- incomingUserListMessage{users: msg.Users}
+			var formattedUsers []string
+			for _, val := range msg.Users {
+				if m.stringSessionID == val[1]{
+					formattedUsers = append(formattedUsers, youSentStyle.Render(val[0]))
+				} else {
+					formattedUsers = append(formattedUsers, val[0])
+				}
+			}
+			m.incomingUserListMsg <- incomingUserListMessage{users: formattedUsers}
 		}
 		// When incomingMessages is closed, this goroutine exits cleanly
 	}()
@@ -167,6 +176,7 @@ func initialRoomView() roomView {
 
 	userListVP := viewport.New(40, 5)
 	uniqueSessionID, err := api.MakeSessionID()
+	stringSessionID := bytesToBinaryString(uniqueSessionID)
 
 	if err != nil {
 		log.Println(err)
@@ -180,6 +190,7 @@ func initialRoomView() roomView {
 		users:            []string{},
 
 		sessionID: uniqueSessionID,
+		stringSessionID: stringSessionID,
 
 		incomingTeaMsg:      make(chan incomingMessage, 10),
 		incomingUserListMsg: make(chan incomingUserListMessage, 10),
@@ -256,7 +267,7 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case incomingUserListMessage:
 		m.users = msg.users
-		m.userListViewPort.SetContent(lipgloss.NewStyle().Width(m.userListViewPort.Width).Render(strings.Join(m.users, "\n")))
+		m.userListViewPort.SetContent(lipgloss.NewStyle().Width(m.userListViewPort.Width).Render(strings.Join(msg.users, "\n")))
 		m.userListViewPort.GotoBottom()
 		return m, m.watchIncomingUserList()
 
@@ -395,6 +406,7 @@ func (m roomView) initializeConnection() (net.Conn, error) {
 	q := url.Query()
 	q.Add("room_code", m.roomCode)
 	q.Add("user_name", m.userName)
+	q.Add("session_id", string(m.stringSessionID))
 
 	url.RawQuery = q.Encode()
 
@@ -406,4 +418,17 @@ func (m roomView) initializeConnection() (net.Conn, error) {
 
 	return connection, nil
 
+}
+
+
+
+
+func bytesToBinaryString(data []byte) string {
+	var sb strings.Builder // Use strings.Builder for efficient string concatenation
+	for _, b := range data {
+		// Convert each byte to its 8-bit binary string representation
+		// Use fmt.Sprintf("%08b", b) to ensure leading zeros for 8 bits
+		sb.WriteString(fmt.Sprintf("%08b", b))
+	}
+	return sb.String()
 }

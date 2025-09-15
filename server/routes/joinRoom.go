@@ -13,12 +13,16 @@ import (
 
 func JoinRoom(responseWriter http.ResponseWriter, request *http.Request, roomHub *models.RoomHub, roomCode string) error {
 	userName := request.URL.Query().Get("user_name")
+	sessionID := request.URL.Query().Get("session_id")
 	if userName == "" {
 		return errors.New("did not send a user_name query param")
 	}
+	if sessionID == "" {
+		return errors.New("did not send a session_id query param")
+	}
 
 	connection, err := socketcontroller.Upgrader(responseWriter, request)
-	user := models.NewUser(connection, userName)
+	user := models.NewUser(connection, userName, []byte(sessionID))
 	if err != nil {
 		return err
 	}

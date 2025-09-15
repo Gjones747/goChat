@@ -13,14 +13,16 @@ type User struct {
 	room       *Room
 	Connection net.Conn
 	Name       string
+	SessionID []byte
 	send       chan api.Envelope
 }
 
-func NewUser(connection net.Conn, userName string) *User {
+func NewUser(connection net.Conn, userName string, sessionID []byte) *User {
 	return &User{
 		room:       nil,
 		Connection: connection,
 		Name:       userName,
+		SessionID: sessionID,
 		send:       make(chan api.Envelope),
 	}
 }

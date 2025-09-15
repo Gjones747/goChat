@@ -31,7 +31,7 @@ func NewMessage(messageType string, senderUserName string, sessionID []byte, mes
 }
 
 //userlist just contains a list of usernames
-func NewUserList(users []string) (Envelope, error) {
+func NewUserList(users [][]string) (Envelope, error) {
 	userList := UserList {
 		Users: users,
 	}
