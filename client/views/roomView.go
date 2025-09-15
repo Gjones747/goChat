@@ -1,6 +1,7 @@
 package views
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,12 +24,13 @@ type roomView struct {
 	messages []string
 	users    []string
 
-	viewport    viewport.Model
+	viewport         viewport.Model
 	userListViewPort viewport.Model
-	textInput   textinput.Model
-	senderStyle lipgloss.Style
+	textInput        textinput.Model
+	senderStyle      lipgloss.Style
 
-	userName string
+	userName  string
+	sessionID []byte
 
 	ready    bool
 	roomCode string
@@ -38,9 +40,21 @@ type roomView struct {
 
 	connection net.Conn
 
-	incomingTeaMsg chan incomingMessage
+	incomingTeaMsg      chan incomingMessage
 	incomingUserListMsg chan incomingUserListMessage
 }
+
+var (
+	boldOrangeStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
+
+	boldStyle = lipgloss.NewStyle().
+			Bold(true)
+
+	roomCodeStyle = lipgloss.NewStyle().Bold(true).Italic(true).Foreground(lipgloss.Color("5"))
+
+	youSentStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true)
+	otherSendStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+)
 
 var incomingMessages chan api.Message = make(chan api.Message, 10)
 var incomingUserList chan api.UserList = make(chan api.UserList, 10)
@@ -63,7 +77,16 @@ type incomingUserListMessage struct {
 func (m *roomView) startIncomingRelay() {
 	go func() {
 		for msg := range incomingMessages { // incomingMessages is your package channel of api.Message
-			formatted := fmt.Sprintf("%s-%s: %s", msg.DateTime, msg.SenderName, msg.Contents)
+			var header string
+			if bytes.Equal(msg.SessionID, m.sessionID) {
+				name := youSentStyle.Render("You sent: ")
+				header = fmt.Sprintf("%s %s", msg.DateTime.Format("3:04pm"), name)
+			} else {
+				name := otherSendStyle.Render(msg.SenderName)
+				header = fmt.Sprintf("%s %s: ", msg.DateTime.Format("3:04pm"), name)
+			}
+
+			formatted := header + string(msg.Contents)
 			m.incomingTeaMsg <- incomingMessage{message: formatted}
 		}
 		// When incomingMessages is closed, this goroutine exits cleanly
@@ -85,13 +108,13 @@ func (m *roomView) watchIncoming() tea.Cmd {
 }
 
 func (m *roomView) watchIncomingUserList() tea.Cmd {
-	return func() tea.Msg{
+	return func() tea.Msg {
 		return <-m.incomingUserListMsg
 	}
 }
 
 func (m *roomView) sendMessage(contents string) {
-	newMessage := api.NewMessage(m.userName, []byte(contents))
+	newMessage := api.NewMessage("USER", m.userName, m.sessionID, []byte(contents))
 
 	socketcontroller.SendFramesToServer(m.connection, newMessage)
 }
@@ -127,7 +150,7 @@ func (m *roomView) watchConnection() {
 				return
 			}
 			incomingUserList <- userListData
-			
+
 		}
 	}
 
@@ -143,16 +166,23 @@ func initialRoomView() roomView {
 	vp := viewport.New(40, 5)
 
 	userListVP := viewport.New(40, 5)
+	uniqueSessionID, err := api.MakeSessionID()
+
+	if err != nil {
+		log.Println(err)
+	}
 
 	return roomView{
-		messages:  []string{},
+		messages:         []string{},
 		userListViewPort: userListVP,
-		viewport:  vp,
-		textInput: ti,
-		users:     []string{},
+		viewport:         vp,
+		textInput:        ti,
+		users:            []string{},
 
-		incomingTeaMsg: make(chan incomingMessage, 10),
-		incomingUserListMsg:  make(chan incomingUserListMessage, 10),
+		sessionID: uniqueSessionID,
+
+		incomingTeaMsg:      make(chan incomingMessage, 10),
+		incomingUserListMsg: make(chan incomingUserListMessage, 10),
 	}
 }
 
@@ -163,8 +193,8 @@ func (model roomView) Init() tea.Cmd {
 func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var (
-		tiCmd tea.Cmd
-		vpCmd tea.Cmd
+		tiCmd     tea.Cmd
+		vpCmd     tea.Cmd
 		userVPCmd tea.Cmd
 	)
 
@@ -209,7 +239,6 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
 		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 3
-
 
 		if len(m.messages) == 1 {
 			// Wrap content before setting it.
@@ -260,14 +289,10 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m roomView) renderUserList(width, height int) string {
 	// Room info at the top
-	boldOrangeStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
 	roomInfoStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.ASCIIBorder()).
 		PaddingLeft(2).
 		Width(width)
-	boldStyle := lipgloss.NewStyle().
-		Bold(true)
-	roomCodeStyle := lipgloss.NewStyle().Bold(true).Italic(true).Foreground(lipgloss.Color("5"))
 	commandsHeaderText := roomCodeStyle.Render("\nCOMMANDS:")
 	quitText := boldOrangeStyle.Render(`"q"`) + boldStyle.Render(" or ") + boldOrangeStyle.Render(`"Ctrl+c"`) + boldStyle.Render(" to quit")
 	roomCodeText := roomCodeStyle.Render("\nROOM CODE: ") + boldStyle.Render(m.roomCode)
@@ -277,15 +302,13 @@ func (m roomView) renderUserList(width, height int) string {
  _\ \/ _ \/ __/  '_/ -_) __/
 /___/\___/\__/_/\_\\__/\__/ `), roomCodeText, commandsHeaderText, quitText, "\n")
 	var renderedInfo string
-	if width - 2>= lipgloss.Width(title) {
+	if width-2 >= lipgloss.Width(title) {
 		renderedInfo = roomInfoStyle.Render(title)
 	} else {
-		title = lipgloss.JoinVertical(lipgloss.Left, roomCodeText,commandsHeaderText, quitText, "\n")
+		title = lipgloss.JoinVertical(lipgloss.Left, roomCodeText, commandsHeaderText, quitText, "\n")
 		renderedInfo = roomInfoStyle.Render(title)
 
 	}
-
-	
 
 	// User list viewport below the room info
 	userListHeight := height - lipgloss.Height(renderedInfo)
