@@ -15,9 +15,8 @@ import (
 )
 
 func SendUpgrade(url url.URL) (net.Conn, error) {
-    var err error
+	var err error
 	var conn net.Conn
-
 
 	if url.Scheme == "wss" {
 		conn, err = tls.Dial("tcp", url.Host, &tls.Config{
@@ -104,8 +103,6 @@ func keyCheck(clientKey string, serverKey string) bool {
 	hasher.Write([]byte(clientKey))
 
 	signedClient := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-	log.Println(signedClient)
-	log.Println(serverKey)
 
 	if signedClient == serverKey {
 		return true
@@ -114,20 +111,10 @@ func keyCheck(clientKey string, serverKey string) bool {
 	return false
 }
 
-func querySetter(url url.URL) (string, error){
+func querySetter(url url.URL) (string, error) {
 	if url.RawQuery != "" {
 		return url.Path + "?" + url.RawQuery, nil
 	}
 
 	return "", errors.New("Couldn't join url")
 }
-
-
-
-
-
-
-
-
-
-
