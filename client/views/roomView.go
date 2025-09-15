@@ -23,10 +23,10 @@ type roomView struct {
 	messages []string
 	users    []string
 
-	viewport    viewport.Model
+	viewport         viewport.Model
 	userListViewPort viewport.Model
-	textInput   textinput.Model
-	senderStyle lipgloss.Style
+	textInput        textinput.Model
+	senderStyle      lipgloss.Style
 
 	userName string
 
@@ -38,7 +38,7 @@ type roomView struct {
 
 	connection net.Conn
 
-	incomingTeaMsg chan incomingMessage
+	incomingTeaMsg      chan incomingMessage
 	incomingUserListMsg chan incomingUserListMessage
 }
 
@@ -85,7 +85,7 @@ func (m *roomView) watchIncoming() tea.Cmd {
 }
 
 func (m *roomView) watchIncomingUserList() tea.Cmd {
-	return func() tea.Msg{
+	return func() tea.Msg {
 		return <-m.incomingUserListMsg
 	}
 }
@@ -127,7 +127,7 @@ func (m *roomView) watchConnection() {
 				return
 			}
 			incomingUserList <- userListData
-			
+
 		}
 	}
 
@@ -145,14 +145,14 @@ func initialRoomView() roomView {
 	userListVP := viewport.New(40, 5)
 
 	return roomView{
-		messages:  []string{},
+		messages:         []string{},
 		userListViewPort: userListVP,
-		viewport:  vp,
-		textInput: ti,
-		users:     []string{},
+		viewport:         vp,
+		textInput:        ti,
+		users:            []string{},
 
-		incomingTeaMsg: make(chan incomingMessage, 10),
-		incomingUserListMsg:  make(chan incomingUserListMessage, 10),
+		incomingTeaMsg:      make(chan incomingMessage, 10),
+		incomingUserListMsg: make(chan incomingUserListMessage, 10),
 	}
 }
 
@@ -163,8 +163,8 @@ func (model roomView) Init() tea.Cmd {
 func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var (
-		tiCmd tea.Cmd
-		vpCmd tea.Cmd
+		tiCmd     tea.Cmd
+		vpCmd     tea.Cmd
 		userVPCmd tea.Cmd
 	)
 
@@ -209,7 +209,6 @@ func (m roomView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.Width = m.windowWidth
 		m.textInput.Width = m.windowWidth
 		m.viewport.Height = m.windowHeight - lipgloss.Height(m.headerView()) - lipgloss.Height(gap) - 3
-
 
 		if len(m.messages) == 1 {
 			// Wrap content before setting it.
@@ -277,15 +276,13 @@ func (m roomView) renderUserList(width, height int) string {
  _\ \/ _ \/ __/  '_/ -_) __/
 /___/\___/\__/_/\_\\__/\__/ `), roomCodeText, commandsHeaderText, quitText, "\n")
 	var renderedInfo string
-	if width - 2>= lipgloss.Width(title) {
+	if width-2 >= lipgloss.Width(title) {
 		renderedInfo = roomInfoStyle.Render(title)
 	} else {
-		title = lipgloss.JoinVertical(lipgloss.Left, roomCodeText,commandsHeaderText, quitText, "\n")
+		title = lipgloss.JoinVertical(lipgloss.Left, roomCodeText, commandsHeaderText, quitText, "\n")
 		renderedInfo = roomInfoStyle.Render(title)
 
 	}
-
-	
 
 	// User list viewport below the room info
 	userListHeight := height - lipgloss.Height(renderedInfo)
