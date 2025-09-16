@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os/user"
 	"strings"
+	"time"
 
 	"github.com/Gjones747/goChat/api"
 	socketcontroller "github.com/Gjones747/goChat/webSocket"
@@ -92,7 +93,7 @@ func (m *roomView) startIncomingRelay() {
 			}
 
 			if msg.Type == "JOIN_LEAVE" {
-				formatted := fmt.Sprintf("%s %s", msg.DateTime.Format("3:04pm"), msg.Contents)
+				formatted := fmt.Sprintf("%s %s", time.Now().Format("3:04pm"), msg.Contents)
 				m.incomingTeaMsg <- incomingMessage{message: formatted}	
 			}
 
