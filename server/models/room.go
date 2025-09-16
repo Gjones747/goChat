@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Gjones747/goChat/api"
 )
@@ -33,8 +34,25 @@ func InitRoom(hub *RoomHub, code string) *Room {
 	return newRoom
 }
 
+func (room *Room) sendServerPing() {
+	pingMessage := api.NewMessage("SYS", "", nil, []byte("System ping"))
+	defer log.Println("Closing ping cycle for " + room.roomCode)
+	for {
+		time.Sleep(30 * time.Second)
+
+		for user, isInRoom := range room.users {
+			if isInRoom {
+				user.Recieve(pingMessage)
+				log.Println("Pinged users in " + room.roomCode)
+			}
+		}
+	}
+}
+
 func (room *Room) StartRoom() bool {
-	log.Println("starting room")
+	defer log.Println("Closing room " + room.roomCode)
+	log.Println("starting room " + room.roomCode)
+	go room.sendServerPing()
 	for {
 		select {
 		case user := <-room.register:
@@ -42,11 +60,14 @@ func (room *Room) StartRoom() bool {
 			go user.UserIOReader()
 			go user.userIOWriter()
 			fmt.Println("New user added")
+			room.sendUserJoinMessage(user.Name)
 			room.sendUserList()
 		case user := <-room.deregester:
+			name := user.Name
 			user.Connection.Close()
 			close(user.send)
 			room.users[user] = false
+			delete(room.users, user)
 			log.Printf("User: %s left the room\n", user.Name)
 			if !room.checkRoom() {
 				delete(room.hub.Rooms, room.roomCode)
@@ -55,6 +76,7 @@ func (room *Room) StartRoom() bool {
 				}
 				return false
 			}
+			room.sendUserLeaveMessage(name)
 			room.sendUserList()
 		case message := <-room.messages:
 			log.Printf("messege: %s", message)
@@ -69,6 +91,25 @@ func (room *Room) sendMessage(message api.Envelope) {
 	for key, val := range room.users {
 		if val {
 			key.Recieve(message)
+		}
+	}
+}
+func (room *Room) sendUserLeaveMessage(userName string) {
+	message := api.NewMessage("JOIN_LEAVE", "", nil, []byte(fmt.Sprintf("%s has left the room!", userName)))
+
+	for user, isInRoom := range room.users {
+		if isInRoom {
+			user.Recieve(message)
+		}
+	}
+}
+
+func (room *Room) sendUserJoinMessage(userName string) {
+	message := api.NewMessage("JOIN_LEAVE", "", nil, []byte(fmt.Sprintf("%s has joined the room!", userName)))
+
+	for user, isInRoom := range room.users {
+		if isInRoom {
+			user.Recieve(message)
 		}
 	}
 }
