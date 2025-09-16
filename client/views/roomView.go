@@ -78,17 +78,24 @@ type incomingUserListMessage struct {
 func (m *roomView) startIncomingRelay() {
 	go func() {
 		for msg := range incomingMessages { // incomingMessages is your package channel of api.Message
-			var header string
-			if bytes.Equal(msg.SessionID, m.sessionID) {
-				name := youSentStyle.Render("You sent: ")
-				header = fmt.Sprintf("%s %s", msg.DateTime.Format("3:04pm"), name)
-			} else {
-				name := otherSendStyle.Render(msg.SenderName)
-				header = fmt.Sprintf("%s %s: ", msg.DateTime.Format("3:04pm"), name)
+			if msg.Type == "USER" {
+				var header string
+				if bytes.Equal(msg.SessionID, m.sessionID) {
+					name := youSentStyle.Render("You sent: ")
+					header = fmt.Sprintf("%s %s", msg.DateTime.Format("3:04pm"), name)
+				} else {
+					name := otherSendStyle.Render(msg.SenderName)
+					header = fmt.Sprintf("%s %s: ", msg.DateTime.Format("3:04pm"), name)
+				}
+				formatted := header + string(msg.Contents)
+				m.incomingTeaMsg <- incomingMessage{message: formatted}
 			}
 
-			formatted := header + string(msg.Contents)
-			m.incomingTeaMsg <- incomingMessage{message: formatted}
+			if msg.Type == "JOIN_LEAVE" {
+				formatted := fmt.Sprintf("%s %s", msg.DateTime.Format("3:04pm"), msg.Contents)
+				m.incomingTeaMsg <- incomingMessage{message: formatted}	
+			}
+
 		}
 		// When incomingMessages is closed, this goroutine exits cleanly
 	}()
