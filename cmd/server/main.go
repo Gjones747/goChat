@@ -47,10 +47,10 @@ func main() {
     mux.HandleFunc("/makeRoom", createRoomHandler)
     mux.HandleFunc("/joinRoom", joinRoomHandler)
 
-    mux.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
+    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         http.ServeFile(w, r, "html/index.html")
     })
-	mux.Handle("/chat/", http.StripPrefix("/chat/", http.FileServer(http.Dir("html"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("html"))))
     log.Println("Server starting on port 8081")
     log.Fatal(http.ListenAndServe("0.0.0.0:8081", mux))
 }
