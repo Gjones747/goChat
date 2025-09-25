@@ -43,8 +43,14 @@ func main() {
 
 	// Endpoint is essentially ..../makeRoom?room_code={whatever}&user_name={username}
 	// spawns a new room and automatically adds the user to the room
-	mux.Handle("GET /makeRoom", http.HandlerFunc(createRoomHandler))
-	mux.Handle("GET /joinRoom", http.HandlerFunc(joinRoomHandler))
+	mux.HandleFunc("/makeRoom", createRoomHandler)
+	mux.HandleFunc("/joinRoom", joinRoomHandler)
 
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", mux))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "html/index.html")
+	})
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("html"))))
+
+	log.Println("Server starting on port 8081")
+	log.Fatal(http.ListenAndServe("0.0.0.0:8081", mux))
 }

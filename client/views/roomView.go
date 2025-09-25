@@ -409,7 +409,7 @@ func (m roomView) renderFooter(width int) string {
 // TODO dot env
 func (m roomView) initializeConnection() (net.Conn, error) {
 
-	url := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/joinRoom"}
+	url := url.URL{Scheme: "wss", Host: "chat.kaolun.site", Path: "/joinRoom"}
 	q := url.Query()
 	q.Add("room_code", m.roomCode)
 	q.Add("user_name", m.userName)

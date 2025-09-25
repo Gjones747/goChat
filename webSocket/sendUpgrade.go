@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -15,10 +16,13 @@ import (
 
 func SendUpgrade(url url.URL) (net.Conn, error) {
 
-	conn, err := net.Dial("tcp", url.Host)
+	conn, err := tls.Dial("tcp", "chat.kaolun.site:443", &tls.Config{
+		ServerName: "chat.kaolun.site",
+	})
 
 	if err != nil {
 		log.Printf("Failed to connect to: %s", url.Host)
+		log.Fatal(err)
 		return nil, err
 	}
 
@@ -39,12 +43,13 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 		"Connection: Upgrade\r\n" +
 		fmt.Sprintf("Sec-WebSocket-Key: %s\r\n", clientKey) +
 		"Sec-WebSocket-Version: 13\r\n" +
-		"Origin: http://localHost\r\n" + 
+		"Origin: https://chat.kaolun.site\r\n" +
 		"\r\n"
 
 	_, err = conn.Write([]byte(upgradeRequest))
 
 	if err != nil {
+		log.Fatal(err)
 		return nil, err
 	}
 
@@ -53,18 +58,21 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 	resp, err := http.ReadResponse(reader, &http.Request{Method: "GET"})
 	if err != nil {
 		log.Println("Failed to read server respone")
+		log.Fatal(err)
 		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
+		log.Fatal(resp.StatusCode)
 		return nil, errors.New("Did not Recieve a switching protical response")
 	}
 
 	serverKey := resp.Header.Get("Sec-WebSocket-Accept")
 
 	if !keyCheck(clientKey, serverKey) {
+		log.Fatal("keycheck")
 		return nil, errors.New("Did not recieve the proper accept token")
 	}
 
@@ -87,20 +95,10 @@ func keyCheck(clientKey string, serverKey string) bool {
 	return false
 }
 
-func querySetter(url url.URL) (string, error){
+func querySetter(url url.URL) (string, error) {
 	if url.RawQuery != "" {
 		return url.Path + "?" + url.RawQuery, nil
 	}
 
 	return "", errors.New("Couldn't join url")
 }
-
-
-
-
-
-
-
-
-
-
