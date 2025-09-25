@@ -16,8 +16,8 @@ import (
 
 func SendUpgrade(url url.URL) (net.Conn, error) {
 
-	conn, err := tls.Dial("tcp", "kaolun.site:443", &tls.Config{
-		ServerName: "kaolun.site",
+	conn, err := tls.Dial("tcp", "chat.kaolun.site:443", &tls.Config{
+		ServerName: "chat.kaolun.site",
 	})
 
 	if err != nil {
@@ -43,7 +43,7 @@ func SendUpgrade(url url.URL) (net.Conn, error) {
 		"Connection: Upgrade\r\n" +
 		fmt.Sprintf("Sec-WebSocket-Key: %s\r\n", clientKey) +
 		"Sec-WebSocket-Version: 13\r\n" +
-		"Origin: http://localHost\r\n" +
+		"Origin: https://chat.kaolun.site\r\n" +
 		"\r\n"
 
 	_, err = conn.Write([]byte(upgradeRequest))
