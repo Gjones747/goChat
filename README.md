@@ -10,7 +10,7 @@ A **lightweight terminal chat client** built in Go.
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This is **not production-ready**.  
 It’s a learning project where I explored:  
@@ -20,9 +20,15 @@ It’s a learning project where I explored:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-Clone and run the **client** (server is already deployed):  
+### There are two ways to install the client:
+
+**Download the socket-client executable from [releases](https://github.com/Gjones747/goChat/releases),**
+
+or
+
+Clone and run the client (server is already deployed):  
 
 ```bash
 git clone https://github.com/Gjones747/goChat.git
@@ -36,7 +42,7 @@ go run cmd/client/main.go
 go build cmd/client/main.go
 ```
 
-## 🖥️ Server
+## Server
 
 The server is where most of the goroutine logic lives. The control flow works like this:
 
@@ -53,7 +59,7 @@ The server is where most of the goroutine logic lives. The control flow works li
    - The room then broadcasts the message to all user channels.  
    - When a user channel receives a message → it’s sent back to the client via the stored `net.Conn`.  
 
-## ⚡ SocketController
+## SocketController
 
 All WebSocket logic lives here. Instead of relying on a library, I worked directly with Go’s raw `net.Conn` and the RFC 6455 WebSocket protocol doc (https://www.rfc-editor.org/rfc/pdfrfc/rfc6455.txt.pdf).
 
@@ -65,7 +71,7 @@ This was easily the most valuable part of the project from a learning perspectiv
 
 ---
 
-## ☁️ Deploy
+## Deploy
 
 I wanted to make the server accessible, so I deployed it using my brother’s old PC:  
 
@@ -78,7 +84,7 @@ I wanted to make the server accessible, so I deployed it using my brother’s ol
 
 ---
 
-## 💻 Client
+## Client
 
 The client was my way of avoiding a full web frontend while still learning WebSockets in Go.  
 
